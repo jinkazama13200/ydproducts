@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 
 const API_URL = 'http://localhost:8787/api/running-products';
 const HOT_VIDEO = `${import.meta.env.BASE_URL}hot-icon.mp4`;
@@ -45,6 +45,8 @@ export default function App() {
   const [activeOnly, setActiveOnly] = useState(false);
   const [health, setHealth] = useState({ state: 'idle', latencyMs: 0 });
   const [tokenVisible, setTokenVisible] = useState(false);
+  const [changedKeys, setChangedKeys] = useState(new Set());
+  const prevMapRef = useRef(new Map());
   const [cfg, setCfg] = useState(() => {
     const saved = localStorage.getItem('desktopCfg');
     return saved ? { ...defaultCfg, ...JSON.parse(saved) } : defaultCfg;
@@ -104,6 +106,25 @@ export default function App() {
     })
     .sort((a, b) => b[2] - a[2]) : [];
 
+  useEffect(() => {
+    const next = new Map();
+    const changed = new Set();
+    for (const [merchant, items] of merchantEntries) {
+      for (const item of items) {
+        const key = `${merchant}|||${item.product}`;
+        const prev = prevMapRef.current.get(key);
+        next.set(key, item.ordersInWindow);
+        if (prev !== undefined && prev !== item.ordersInWindow) changed.add(key);
+      }
+    }
+    prevMapRef.current = next;
+    setChangedKeys(changed);
+    if (changed.size) {
+      const t = setTimeout(() => setChangedKeys(new Set()), 900);
+      return () => clearTimeout(t);
+    }
+  }, [merchantEntries]);
+
   const exportCsv = () => {
     if (!merchantEntries.length) return;
     const rows = [['merchant', 'product', `orders_${data?.rateWindowMinutes || 5}m`]];
@@ -123,6 +144,18 @@ export default function App() {
   const saveSettings = () => {
     localStorage.setItem('desktopCfg', JSON.stringify(cfg));
   };
+
+  const totalOrders5m = merchantEntries.reduce((s, [, , sum]) => s + sum, 0);
+  const hottestMerchant = merchantEntries[0]?.[0] || '-';
+  const hottestProduct = (() => {
+    let best = { merchant: '-', product: '-', n: -1 };
+    for (const [merchant, items] of merchantEntries) {
+      for (const item of items) {
+        if (item.ordersInWindow > best.n) best = { merchant, product: item.product, n: item.ordersInWindow };
+      }
+    }
+    return best;
+  })();
 
   return (
     <>
@@ -165,6 +198,12 @@ export default function App() {
 
         {data && (
           <>
+            <div className="summary card" style={{ marginBottom: 12 }}>
+              <div><span>🔥 Merchant hot nhất</span><b>{hottestMerchant}</b></div>
+              <div><span>⚡ Product hot nhất</span><b>{hottestProduct.product} ({hottestProduct.n >= 0 ? hottestProduct.n : 0}/{data.rateWindowMinutes}m)</b></div>
+              <div><span>📊 Tổng đơn toàn hệ thống</span><b>{totalOrders5m}/{data.rateWindowMinutes}m</b></div>
+            </div>
+
             <div className="stats">
               <div className="stat"><span>🕒 Updated</span><b>{new Date(data.fetchedAt).toLocaleTimeString()}</b></div>
               <div className="stat"><span>⏱ Window</span><b>{data.rateWindowMinutes} phút</b></div>
@@ -176,12 +215,16 @@ export default function App() {
               {merchantEntries.map(([merchant, items, sumOrders], idx) => (
                 <div className="card fade-in" key={merchant}>
                   <h3>{idx < 3 ? `🏆 ${merchant}` : merchant} <small style={{color:'#64748b'}}>({sumOrders})</small></h3>
-                  {items.map((x, i) => (
-                    <div className="row" key={i}>
-                      <div className="name"><span className={`lvl ${levelClass(x.ordersInWindow)}`}><LevelIcon n={x.ordersInWindow} /></span> {x.product}</div>
-                      <div className="rate">{x.ordersInWindow}/{data.rateWindowMinutes}m</div>
-                    </div>
-                  ))}
+                  {items.map((x, i) => {
+                    const rowKey = `${merchant}|||${x.product}`;
+                    const cls = `row lvl-row ${levelClass(x.ordersInWindow)} ${changedKeys.has(rowKey) ? 'changed' : ''}`;
+                    return (
+                      <div className={cls} key={i}>
+                        <div className="name"><span className={`lvl ${levelClass(x.ordersInWindow)}`}><LevelIcon n={x.ordersInWindow} /></span> {x.product}</div>
+                        <div className="rate">{x.ordersInWindow}/{data.rateWindowMinutes}m</div>
+                      </div>
+                    );
+                  })}
                 </div>
               ))}
             </div>
