@@ -188,7 +188,7 @@ export default function App() {
           </div>
         )}
 
-        <div className="toolbar card" style={{ marginBottom: 12 }}>
+        <div className="toolbar card sticky-toolbar" style={{ marginBottom: 12 }}>
           <input placeholder="Tìm merchant/product..." value={query} onChange={e => setQuery(e.target.value)} />
           <label className="chk"><input type="checkbox" checked={activeOnly} onChange={e => setActiveOnly(e.target.checked)} /> Chỉ hiện merchant active</label>
           {!!lastOkAt && <span className="ok">Last OK: {new Date(lastOkAt).toLocaleTimeString()}</span>}
