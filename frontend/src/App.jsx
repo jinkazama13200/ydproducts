@@ -129,7 +129,8 @@ export default function App() {
         const key = `${merchant}|||${item.product}`;
         const n = Number(item.ordersInWindow || 0);
         if (n > 0) lastActiveRef.current.set(key, now);
-        else if (!lastActiveRef.current.has(key)) lastActiveRef.current.set(key, now);
+        // Nếu ordersInWindow === 0 và chưa từng có đơn → KHÔNG set lastActive
+        // → product sẽ bị coi là inactive ngay
       }
     }
   }, [data]);
@@ -144,7 +145,9 @@ export default function App() {
         const key = `${merchant}|||${x.product}`;
         if (x.ordersInWindow > 0) return true;
         const lastActive = lastActiveRef.current.get(key);
-        return lastActive && (now - lastActive) < INACTIVE_MS;
+        // Nếu chưa từng có đơn (không có lastActive) → ẩn luôn
+        if (!lastActive) return false;
+        return (now - lastActive) < INACTIVE_MS;
       });
       const sumOrders = activeItems.reduce((s, x) => s + x.ordersInWindow, 0);
       const allInactive = activeItems.length === 0;
