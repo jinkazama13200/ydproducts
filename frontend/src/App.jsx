@@ -49,6 +49,8 @@ export default function App() {
   const [tokenVisible, setTokenVisible] = useState(false);
   const [changedKeys, setChangedKeys] = useState(new Set());
   const prevMapRef = useRef(new Map());
+  const lastActiveRef = useRef(new Map());
+  const INACTIVE_MS = 10 * 60 * 1000; // 10 phút
   const [cfg, setCfg] = useState(() => {
     const saved = localStorage.getItem('desktopCfg');
     return saved ? { ...defaultCfg, ...JSON.parse(saved) } : defaultCfg;
@@ -118,19 +120,48 @@ export default function App() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const merchantEntries = data ? Object.entries(data.data)
+  // Track last active time per product
+  useEffect(() => {
+    if (!data) return;
+    const now = Date.now();
+    for (const [merchant, items] of Object.entries(data.data)) {
+      for (const item of items) {
+        const key = `${merchant}|||${item.product}`;
+        const n = Number(item.ordersInWindow || 0);
+        if (n > 0) lastActiveRef.current.set(key, now);
+        else if (!lastActiveRef.current.has(key)) lastActiveRef.current.set(key, now);
+      }
+    }
+  }, [data]);
+
+  const now = Date.now();
+
+  const allMerchantEntries = data ? Object.entries(data.data)
     .map(([merchant, items]) => {
       const normalized = items.map((x) => ({ ...x, ordersInWindow: Number(x.ordersInWindow || 0) }));
-      const sumOrders = normalized.reduce((s, x) => s + x.ordersInWindow, 0);
-      return [merchant, normalized, sumOrders];
-    })
+      // Filter: ẩn product không có đơn > 10 phút
+      const activeItems = normalized.filter((x) => {
+        const key = `${merchant}|||${x.product}`;
+        if (x.ordersInWindow > 0) return true;
+        const lastActive = lastActiveRef.current.get(key);
+        return lastActive && (now - lastActive) < INACTIVE_MS;
+      });
+      const sumOrders = activeItems.reduce((s, x) => s + x.ordersInWindow, 0);
+      const allInactive = activeItems.length === 0;
+      return [merchant, activeItems, sumOrders, allInactive, normalized.length];
+    }) : [];
+
+  const runningMerchants = allMerchantEntries.filter(([,,,inactive]) => !inactive);
+  const stoppedMerchants = allMerchantEntries.filter(([,,,inactive]) => inactive);
+
+  const merchantEntries = runningMerchants
     .filter(([merchant, items, sumOrders]) => {
       const q = query.trim().toLowerCase();
       const hit = !q || merchant.toLowerCase().includes(q) || items.some(x => x.product.toLowerCase().includes(q));
       const activeHit = !activeOnly || sumOrders > 0;
       return hit && activeHit;
     })
-    .sort((a, b) => b[2] - a[2]) : [];
+    .sort((a, b) => b[2] - a[2]);
 
   useEffect(() => {
     const next = new Map();
@@ -271,6 +302,27 @@ export default function App() {
                   })}
                 </div>
               ))}
+            </div>
+
+            {stoppedMerchants.length > 0 && (
+              <div className="stopped-section card" style={{ marginTop: 16 }}>
+                <h3>🔴 Merchant đang dừng ({stoppedMerchants.length})</h3>
+                <p style={{ color: '#64748b', fontSize: 13, margin: '4px 0 8px' }}>Không có product nào chạy trong 10 phút qua</p>
+                <div className="stopped-list">
+                  {stoppedMerchants.map(([merchant,,, , totalProducts]) => (
+                    <span className="stopped-tag" key={merchant}>{merchant} <small>({totalProducts} products)</small></span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div className="running-summary card" style={{ marginTop: 12 }}>
+              <h3>🟢 Merchant đang chạy ({runningMerchants.length})</h3>
+              <div className="stopped-list">
+                {runningMerchants.map(([merchant,, sumOrders]) => (
+                  <span className="running-tag" key={merchant}>{merchant} <small>({sumOrders})</small></span>
+                ))}
+              </div>
             </div>
           </>
         )}

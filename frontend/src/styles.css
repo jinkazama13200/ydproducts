@@ -41,4 +41,11 @@ input{width:65%;padding:7px 9px;border:1px solid #cbd5e1;border-radius:8px}
 .chk{display:flex;align-items:center;gap:6px;color:#334155;font-size:14px}.chk input{width:auto}
 .ok{color:#166534;font-weight:700}
 .stale{color:#991b1b;background:#fee2e2;border:1px solid #fca5a5;padding:4px 8px;border-radius:999px;font-weight:800;font-size:12px}
+.stopped-section{border-left:4px solid #ef4444}
+.running-summary{border-left:4px solid #22c55e}
+.stopped-list{display:flex;flex-wrap:wrap;gap:8px}
+.stopped-tag{background:#fee2e2;color:#991b1b;border:1px solid #fca5a5;padding:6px 12px;border-radius:10px;font-weight:700;font-size:13px}
+.stopped-tag small{color:#b91c1c;font-weight:500}
+.running-tag{background:#dcfce7;color:#166534;border:1px solid #86efac;padding:6px 12px;border-radius:10px;font-weight:700;font-size:13px}
+.running-tag small{color:#15803d;font-weight:500}
 @media(max-width:760px){.summary{grid-template-columns:1fr}.stats{grid-template-columns:repeat(2,minmax(0,1fr))}.hero{flex-direction:column;align-items:flex-start;gap:10px}.hero h1{font-size:24px}input{width:58%}.toolbar input{width:100%}}
