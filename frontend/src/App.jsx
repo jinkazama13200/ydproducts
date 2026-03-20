@@ -1,0 +1,193 @@
+import React, { useEffect, useState } from 'react';
+
+const API_URL = 'http://localhost:8787/api/running-products';
+const HOT_VIDEO = `${import.meta.env.BASE_URL}hot-icon.mp4`;
+const WARM_VIDEO = `${import.meta.env.BASE_URL}warm-icon.mp4`;
+const IDLE_VIDEO = `${import.meta.env.BASE_URL}idle-icon.mp4`;
+
+function LevelIcon({ n }) {
+  const [failed, setFailed] = useState(false);
+
+  if (n >= 10) {
+    if (failed) return '🔥';
+    return <video className="hot-gif" src={HOT_VIDEO} autoPlay muted loop playsInline onError={() => setFailed(true)} />;
+  }
+  if (n >= 3) {
+    if (failed) return '🟢';
+    return <video className="warm-gif" src={WARM_VIDEO} autoPlay muted loop playsInline onError={() => setFailed(true)} />;
+  }
+
+  if (failed) return '⚪';
+  return <video className="idle-gif" src={IDLE_VIDEO} autoPlay muted loop playsInline onError={() => setFailed(true)} />;
+}
+
+function levelClass(n) {
+  if (n >= 10) return 'hot';
+  if (n >= 3) return 'warm';
+  return 'idle';
+}
+
+const defaultCfg = {
+  apiBase: 'https://yida-new-mgr-omnxqgbi-api.yznba.com',
+  origin: 'https://yida-new-mgr-y5cf7h6r.yznba.com',
+  token: '',
+  maxPages: 20,
+  rateWindowMinutes: 5
+};
+
+export default function App() {
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState('');
+  const [lastOkAt, setLastOkAt] = useState('');
+  const [query, setQuery] = useState('');
+  const [activeOnly, setActiveOnly] = useState(false);
+  const [health, setHealth] = useState({ state: 'idle', latencyMs: 0 });
+  const [tokenVisible, setTokenVisible] = useState(false);
+  const [cfg, setCfg] = useState(() => {
+    const saved = localStorage.getItem('desktopCfg');
+    return saved ? { ...defaultCfg, ...JSON.parse(saved) } : defaultCfg;
+  });
+
+  const fetchData = async () => {
+    const t0 = performance.now();
+    try {
+      setRefreshing(true);
+      setError('');
+      let json;
+
+      if (window.desktopAPI?.getRunningProducts) {
+        json = await window.desktopAPI.getRunningProducts(cfg);
+      } else {
+        const res = await fetch(API_URL);
+        json = await res.json();
+        if (!res.ok) throw new Error(json.error || 'Fetch failed');
+      }
+
+      const latencyMs = Math.round(performance.now() - t0);
+      setData(json);
+      setLastOkAt(new Date().toISOString());
+      setHealth({ state: latencyMs > 2000 ? 'slow' : 'ok', latencyMs });
+    } catch (e) {
+      const latencyMs = Math.round(performance.now() - t0);
+      setError(e.message);
+      setHealth({ state: 'error', latencyMs });
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
+  useEffect(() => {
+    localStorage.setItem('desktopCfg', JSON.stringify(cfg));
+  }, [cfg]);
+
+  useEffect(() => {
+    fetchData();
+    const id = setInterval(fetchData, 20000);
+    return () => clearInterval(id);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const merchantEntries = data ? Object.entries(data.data)
+    .map(([merchant, items]) => {
+      const normalized = items.map((x) => ({ ...x, ordersInWindow: Number(x.ordersInWindow || 0) }));
+      const sumOrders = normalized.reduce((s, x) => s + x.ordersInWindow, 0);
+      return [merchant, normalized, sumOrders];
+    })
+    .filter(([merchant, items, sumOrders]) => {
+      const q = query.trim().toLowerCase();
+      const hit = !q || merchant.toLowerCase().includes(q) || items.some(x => x.product.toLowerCase().includes(q));
+      const activeHit = !activeOnly || sumOrders > 0;
+      return hit && activeHit;
+    })
+    .sort((a, b) => b[2] - a[2]) : [];
+
+  const exportCsv = () => {
+    if (!merchantEntries.length) return;
+    const rows = [['merchant', 'product', `orders_${data?.rateWindowMinutes || 5}m`]];
+    for (const [merchant, items] of merchantEntries) {
+      for (const item of items) rows.push([merchant, item.product, String(item.ordersInWindow)]);
+    }
+    const csv = rows.map(r => r.map(v => `"${String(v).replaceAll('"', '""')}"`).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `yida-products-${new Date().toISOString().replace(/[:.]/g, '-')}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const saveSettings = () => {
+    localStorage.setItem('desktopCfg', JSON.stringify(cfg));
+  };
+
+  return (
+    <>
+      <video className="bg-video" autoPlay muted loop playsInline src="https://motionbgs.com/media/771/pirate-kings-adventure-one-piece.960x540.mp4" />
+      <div className="bg-overlay" />
+      <div className="wrap">
+        <div className="hero">
+          <div>
+            <h1>⚡ 易达支付产品状态-Real Time</h1>
+            <p>Realtime theo merchant • Auto refresh 20s</p>
+          </div>
+          <div className="hero-actions">
+            <span className={`health ${health.state}`}>API {health.state.toUpperCase()} {health.latencyMs ? `• ${health.latencyMs}ms` : ''}</span>
+            <button onClick={fetchData} className={refreshing ? 'bounce' : ''}>↻ Refresh now</button>
+            <button onClick={exportCsv}>⬇ Export CSV</button>
+          </div>
+        </div>
+
+        {window.desktopAPI?.getRunningProducts && (
+          <div className="card" style={{ marginBottom: 12 }}>
+            <div className="row"><div className="name">API Base</div><input value={cfg.apiBase} onChange={e => setCfg({ ...cfg, apiBase: e.target.value })} /></div>
+            <div className="row"><div className="name">Origin</div><input value={cfg.origin} onChange={e => setCfg({ ...cfg, origin: e.target.value })} /></div>
+            <div className="row"><div className="name">Token</div><input type={tokenVisible ? 'text' : 'password'} value={cfg.token} onChange={e => setCfg({ ...cfg, token: e.target.value })} /></div>
+            <div className="hero-actions" style={{ justifyContent: 'flex-end' }}>
+              <button onClick={() => setTokenVisible(v => !v)}>{tokenVisible ? '🙈 Hide token' : '👁 Show token'}</button>
+              <button onClick={saveSettings}>💾 Save</button>
+              <button onClick={fetchData}>🧪 Test connection</button>
+            </div>
+          </div>
+        )}
+
+        <div className="toolbar card" style={{ marginBottom: 12 }}>
+          <input placeholder="Tìm merchant/product..." value={query} onChange={e => setQuery(e.target.value)} />
+          <label className="chk"><input type="checkbox" checked={activeOnly} onChange={e => setActiveOnly(e.target.checked)} /> Chỉ hiện merchant active</label>
+          {!!lastOkAt && <span className="ok">Last OK: {new Date(lastOkAt).toLocaleTimeString()}</span>}
+        </div>
+
+        {loading && <p>Loading...</p>}
+        {error && <p className="err">Error: {error}</p>}
+
+        {data && (
+          <>
+            <div className="stats">
+              <div className="stat"><span>🕒 Updated</span><b>{new Date(data.fetchedAt).toLocaleTimeString()}</b></div>
+              <div className="stat"><span>⏱ Window</span><b>{data.rateWindowMinutes} phút</b></div>
+              <div className="stat"><span>🏢 Merchants</span><b>{merchantEntries.length}/{data.merchantCount}</b></div>
+              <div className="stat"><span>🧩 Pairs</span><b>{data.pairCount}</b></div>
+            </div>
+
+            <div className="grid">
+              {merchantEntries.map(([merchant, items, sumOrders], idx) => (
+                <div className="card fade-in" key={merchant}>
+                  <h3>{idx < 3 ? `🏆 ${merchant}` : merchant} <small style={{color:'#64748b'}}>({sumOrders})</small></h3>
+                  {items.map((x, i) => (
+                    <div className="row" key={i}>
+                      <div className="name"><span className={`lvl ${levelClass(x.ordersInWindow)}`}><LevelIcon n={x.ordersInWindow} /></span> {x.product}</div>
+                      <div className="rate">{x.ordersInWindow}/{data.rateWindowMinutes}m</div>
+                    </div>
+                  ))}
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+      </div>
+    </>
+  );
+}

@@ -1,0 +1,44 @@
+{
+  "name": "product-monitor-desktop",
+  "version": "1.0.1",
+  "private": true,
+  "main": "desktop/main.cjs",
+  "scripts": {
+    "frontend:build": "npm --prefix frontend run build",
+    "desktop:start": "electron .",
+    "desktop:start:debug": "cross-env ELECTRON_DEBUG=1 electron .",
+    "desktop:pack-win": "npm run frontend:build && electron-builder --win nsis",
+    "desktop:publish-win": "npm run frontend:build && electron-builder --win nsis --publish always"
+  },
+  "devDependencies": {
+    "electron": "^31.7.7",
+    "electron-builder": "^24.13.3"
+  },
+  "dependencies": {
+    "axios": "^1.8.4",
+    "cross-env": "^7.0.3",
+    "electron-updater": "^6.3.9"
+  },
+  "build": {
+    "appId": "com.easypay.productmonitor",
+    "productName": "Yida Product Monitor",
+    "files": [
+      "desktop/**/*",
+      "frontend/dist/**/*",
+      "package.json",
+      "node_modules/**/*"
+    ],
+    "win": {
+      "target": [
+        "nsis"
+      ]
+    },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "jinkazama13200",
+        "repo": "ydproducts"
+      }
+    ]
+  }
+}
