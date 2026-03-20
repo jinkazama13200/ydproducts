@@ -45,6 +45,7 @@ export default function App() {
   const [activeOnly, setActiveOnly] = useState(false);
   const [health, setHealth] = useState({ state: 'idle', latencyMs: 0 });
   const [stale, setStale] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const [tokenVisible, setTokenVisible] = useState(false);
   const [changedKeys, setChangedKeys] = useState(new Set());
   const prevMapRef = useRef(new Map());
@@ -171,6 +172,21 @@ export default function App() {
   };
 
   const totalOrders5m = merchantEntries.reduce((s, [, , sum]) => s + sum, 0);
+
+  const toggleFullscreen = () => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().then(() => setIsFullscreen(true)).catch(() => {});
+    } else {
+      document.exitFullscreen().then(() => setIsFullscreen(false)).catch(() => {});
+    }
+  };
+
+  useEffect(() => {
+    const handler = () => setIsFullscreen(!!document.fullscreenElement);
+    document.addEventListener('fullscreenchange', handler);
+    return () => document.removeEventListener('fullscreenchange', handler);
+  }, []);
+
   const hottestMerchant = merchantEntries[0]?.[0] || '-';
   const hottestProduct = (() => {
     let best = { merchant: '-', product: '-', n: -1 };
@@ -196,6 +212,7 @@ export default function App() {
             <span className={`health ${health.state}`}>API {health.state.toUpperCase()} {health.latencyMs ? `• ${health.latencyMs}ms` : ''}</span>
             <button onClick={fetchData} className={refreshing ? 'bounce' : ''}>↻ Refresh now</button>
             <button onClick={exportCsv}>⬇ Export CSV</button>
+            <button onClick={toggleFullscreen}>{isFullscreen ? '⬜ Exit Fullscreen' : '🖥 Fullscreen'}</button>
             {window.desktopAPI?.checkUpdatesNow && <button onClick={() => window.desktopAPI.checkUpdatesNow()}>🆙 Check update now</button>}
           </div>
         </div>
