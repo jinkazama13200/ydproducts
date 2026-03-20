@@ -134,6 +134,14 @@ ipcMain.handle('get-running-products', async (_, cfg) => {
   return fetchRunningProducts(cfg || {});
 });
 
+ipcMain.handle('check-updates-now', async () => {
+  manualUpdateCheck = true;
+  await autoUpdater.checkForUpdates();
+  return true;
+});
+
+let manualUpdateCheck = false;
+
 function setupAutoUpdater() {
   autoUpdater.autoDownload = false;
 
@@ -158,11 +166,32 @@ function setupAutoUpdater() {
       title: 'Update ready',
       message: 'Bản cập nhật đã tải xong. Cài đặt và khởi động lại ngay?'
     });
+    manualUpdateCheck = false;
     if (r.response === 0) autoUpdater.quitAndInstall();
   });
 
-  autoUpdater.on('error', (e) => {
+  autoUpdater.on('update-not-available', async () => {
+    if (!manualUpdateCheck) return;
+    manualUpdateCheck = false;
+    await dialog.showMessageBox({
+      type: 'info',
+      buttons: ['OK'],
+      title: 'No update',
+      message: 'Hiện tại bạn đang ở bản mới nhất.'
+    });
+  });
+
+  autoUpdater.on('error', async (e) => {
     console.error('autoUpdater error:', e?.message || e);
+    if (manualUpdateCheck) {
+      manualUpdateCheck = false;
+      await dialog.showMessageBox({
+        type: 'error',
+        buttons: ['OK'],
+        title: 'Update error',
+        message: `Không kiểm tra được cập nhật: ${e?.message || e}`
+      });
+    }
   });
 
   autoUpdater.checkForUpdatesAndNotify();

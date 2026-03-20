@@ -171,6 +171,7 @@ export default function App() {
             <span className={`health ${health.state}`}>API {health.state.toUpperCase()} {health.latencyMs ? `• ${health.latencyMs}ms` : ''}</span>
             <button onClick={fetchData} className={refreshing ? 'bounce' : ''}>↻ Refresh now</button>
             <button onClick={exportCsv}>⬇ Export CSV</button>
+            {window.desktopAPI?.checkUpdatesNow && <button onClick={() => window.desktopAPI.checkUpdatesNow()}>🆙 Check update now</button>}
           </div>
         </div>
 
