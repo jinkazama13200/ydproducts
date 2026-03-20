@@ -44,6 +44,7 @@ export default function App() {
   const [query, setQuery] = useState('');
   const [activeOnly, setActiveOnly] = useState(false);
   const [health, setHealth] = useState({ state: 'idle', latencyMs: 0 });
+  const [stale, setStale] = useState(false);
   const [tokenVisible, setTokenVisible] = useState(false);
   const [changedKeys, setChangedKeys] = useState(new Set());
   const prevMapRef = useRef(new Map());
@@ -58,22 +59,46 @@ export default function App() {
       setRefreshing(true);
       setError('');
       let json;
+      let lastErr;
 
-      if (window.desktopAPI?.getRunningProducts) {
-        json = await window.desktopAPI.getRunningProducts(cfg);
-      } else {
-        const res = await fetch(API_URL);
-        json = await res.json();
-        if (!res.ok) throw new Error(json.error || 'Fetch failed');
+      for (let attempt = 1; attempt <= 2; attempt++) {
+        try {
+          if (window.desktopAPI?.getRunningProducts) {
+            json = await Promise.race([
+              window.desktopAPI.getRunningProducts(cfg),
+              new Promise((_, rej) => setTimeout(() => rej(new Error('Timeout desktop API')), 10000))
+            ]);
+          } else {
+            const controller = new AbortController();
+            const timer = setTimeout(() => controller.abort(), 10000);
+            const res = await fetch(API_URL, { signal: controller.signal });
+            clearTimeout(timer);
+            json = await res.json();
+            if (!res.ok) throw new Error(json.error || 'Fetch failed');
+          }
+
+          if (!json?.data || typeof json.data !== 'object') {
+            throw new Error('API trả dữ liệu rỗng/không hợp lệ');
+          }
+
+          break;
+        } catch (e) {
+          lastErr = e;
+          if (attempt < 2) await new Promise(r => setTimeout(r, 700));
+        }
       }
+
+      if (!json) throw lastErr || new Error('Fetch failed');
 
       const latencyMs = Math.round(performance.now() - t0);
       setData(json);
       setLastOkAt(new Date().toISOString());
+      setStale(false);
       setHealth({ state: latencyMs > 2000 ? 'slow' : 'ok', latencyMs });
     } catch (e) {
       const latencyMs = Math.round(performance.now() - t0);
       setError(e.message);
+      setStale(!!data);
       setHealth({ state: 'error', latencyMs });
     } finally {
       setLoading(false);
@@ -192,6 +217,7 @@ export default function App() {
           <input placeholder="Tìm merchant/product..." value={query} onChange={e => setQuery(e.target.value)} />
           <label className="chk"><input type="checkbox" checked={activeOnly} onChange={e => setActiveOnly(e.target.checked)} /> Chỉ hiện merchant active</label>
           {!!lastOkAt && <span className="ok">Last OK: {new Date(lastOkAt).toLocaleTimeString()}</span>}
+          {stale && <span className="stale">STALE DATA</span>}
         </div>
 
         {loading && <p>Loading...</p>}
