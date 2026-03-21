@@ -50,7 +50,9 @@ export default function App() {
   const [changedKeys, setChangedKeys] = useState(new Set());
   const prevMapRef = useRef(new Map());
   const lastActiveRef = useRef(new Map());
-  const INACTIVE_MS = 10 * 60 * 1000; // 10 phút
+  // Backend đã kiểm tra rateWindowMinutes (5 phút), nên frontend chỉ cần đợi thêm 5 phút
+  // Tổng = rateWindow (5) + frontend (5) = 10 phút
+  const INACTIVE_MS = 5 * 60 * 1000;
   const [cfg, setCfg] = useState(() => {
     const saved = localStorage.getItem('desktopCfg');
     return saved ? { ...defaultCfg, ...JSON.parse(saved) } : defaultCfg;
