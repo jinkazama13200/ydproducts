@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 const API_URL = 'http://localhost:8787/api/running-products';
 const HOT_VIDEO = `${import.meta.env.BASE_URL}hot-icon.mp4`;
@@ -58,7 +58,7 @@ export default function App() {
     return saved ? { ...defaultCfg, ...JSON.parse(saved) } : defaultCfg;
   });
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     const t0 = performance.now();
     try {
       setRefreshing(true);
@@ -76,7 +76,8 @@ export default function App() {
           } else {
             const controller = new AbortController();
             const timer = setTimeout(() => controller.abort(), 10000);
-            const res = await fetch(API_URL, { signal: controller.signal });
+            const url = cfg.token ? `${API_URL}?token=${encodeURIComponent(cfg.token)}` : API_URL;
+            const res = await fetch(url, { signal: controller.signal });
             clearTimeout(timer);
             json = await res.json();
             if (!res.ok) throw new Error(json.error || 'Fetch failed');
@@ -103,13 +104,13 @@ export default function App() {
     } catch (e) {
       const latencyMs = Math.round(performance.now() - t0);
       setError(e.message);
-      setStale(!!data);
+      setStale(true);
       setHealth({ state: 'error', latencyMs });
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  };
+  }, [cfg]);
 
   useEffect(() => {
     localStorage.setItem('desktopCfg', JSON.stringify(cfg));
@@ -119,54 +120,61 @@ export default function App() {
     fetchData();
     const id = setInterval(fetchData, 20000);
     return () => clearInterval(id);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [fetchData]);
+
+  const safeData = useMemo(() => (
+    data?.data && typeof data.data === 'object' ? data.data : {}
+  ), [data]);
 
   // Track last active time per product
   useEffect(() => {
-    if (!data) return;
     const now = Date.now();
-    for (const [merchant, items] of Object.entries(data.data)) {
-      for (const item of items) {
+    for (const [merchant, items] of Object.entries(safeData)) {
+      const list = Array.isArray(items) ? items : [];
+      for (const item of list) {
         const key = `${merchant}|||${item.product}`;
         const n = Number(item.ordersInWindow || 0);
         if (n > 0) lastActiveRef.current.set(key, now);
-        // Nếu ordersInWindow === 0 và chưa từng có đơn → KHÔNG set lastActive
-        // → product sẽ bị coi là inactive ngay
       }
     }
-  }, [data]);
+  }, [safeData]);
 
-  const now = Date.now();
-
-  const allMerchantEntries = data ? Object.entries(data.data)
-    .map(([merchant, items]) => {
-      const normalized = items.map((x) => ({ ...x, ordersInWindow: Number(x.ordersInWindow || 0) }));
-      // Filter: ẩn product không có đơn > 10 phút
-      const activeItems = normalized.filter((x) => {
-        const key = `${merchant}|||${x.product}`;
-        if (x.ordersInWindow > 0) return true;
-        const lastActive = lastActiveRef.current.get(key);
-        // Nếu chưa từng có đơn (không có lastActive) → ẩn luôn
-        if (!lastActive) return false;
-        return (now - lastActive) < INACTIVE_MS;
+  const allMerchantEntries = useMemo(() => {
+    const now = Date.now();
+    return Object.entries(safeData)
+      .map(([merchant, items]) => {
+        const list = Array.isArray(items) ? items : [];
+        const normalized = list.map((x) => ({ ...x, ordersInWindow: Number(x.ordersInWindow || 0) }));
+        const activeItems = normalized.filter((x) => {
+          const key = `${merchant}|||${x.product}`;
+          if (x.ordersInWindow > 0) return true;
+          const lastActive = lastActiveRef.current.get(key);
+          if (!lastActive) return false;
+          return (now - lastActive) < INACTIVE_MS;
+        });
+        const sumOrders = activeItems.reduce((s, x) => s + x.ordersInWindow, 0);
+        const allInactive = activeItems.length === 0;
+        return [merchant, activeItems, sumOrders, allInactive, normalized.length];
       });
-      const sumOrders = activeItems.reduce((s, x) => s + x.ordersInWindow, 0);
-      const allInactive = activeItems.length === 0;
-      return [merchant, activeItems, sumOrders, allInactive, normalized.length];
-    }) : [];
+  }, [safeData]);
 
-  const runningMerchants = allMerchantEntries.filter(([,,,inactive]) => !inactive);
-  const stoppedMerchants = allMerchantEntries.filter(([,,,inactive]) => inactive);
+  const runningMerchants = useMemo(
+    () => allMerchantEntries.filter(([,,,inactive]) => !inactive),
+    [allMerchantEntries]
+  );
+  const stoppedMerchants = useMemo(
+    () => allMerchantEntries.filter(([,,,inactive]) => inactive),
+    [allMerchantEntries]
+  );
 
-  const merchantEntries = runningMerchants
+  const merchantEntries = useMemo(() => runningMerchants
     .filter(([merchant, items, sumOrders]) => {
       const q = query.trim().toLowerCase();
       const hit = !q || merchant.toLowerCase().includes(q) || items.some(x => x.product.toLowerCase().includes(q));
       const activeHit = !activeOnly || sumOrders > 0;
       return hit && activeHit;
     })
-    .sort((a, b) => b[2] - a[2]);
+    .sort((a, b) => b[2] - a[2]), [runningMerchants, query, activeOnly]);
 
   useEffect(() => {
     const next = new Map();
@@ -253,18 +261,20 @@ export default function App() {
           </div>
         </div>
 
-        {window.desktopAPI?.getRunningProducts && (
-          <div className="card" style={{ marginBottom: 12 }}>
-            <div className="row"><div className="name">API Base</div><input value={cfg.apiBase} onChange={e => setCfg({ ...cfg, apiBase: e.target.value })} /></div>
-            <div className="row"><div className="name">Origin</div><input value={cfg.origin} onChange={e => setCfg({ ...cfg, origin: e.target.value })} /></div>
-            <div className="row"><div className="name">Token</div><input type={tokenVisible ? 'text' : 'password'} value={cfg.token} onChange={e => setCfg({ ...cfg, token: e.target.value })} /></div>
-            <div className="hero-actions" style={{ justifyContent: 'flex-end' }}>
-              <button onClick={() => setTokenVisible(v => !v)}>{tokenVisible ? '🙈 Hide token' : '👁 Show token'}</button>
-              <button onClick={saveSettings}>💾 Save</button>
-              <button onClick={fetchData}>🧪 Test connection</button>
-            </div>
+        <div className="card" style={{ marginBottom: 12 }}>
+          {window.desktopAPI?.getRunningProducts && (
+            <>
+              <div className="row"><div className="name">API Base</div><input value={cfg.apiBase} onChange={e => setCfg({ ...cfg, apiBase: e.target.value })} /></div>
+              <div className="row"><div className="name">Origin</div><input value={cfg.origin} onChange={e => setCfg({ ...cfg, origin: e.target.value })} /></div>
+            </>
+          )}
+          <div className="row"><div className="name">Token</div><input type={tokenVisible ? 'text' : 'password'} value={cfg.token} onChange={e => setCfg({ ...cfg, token: e.target.value })} placeholder="Paste itoken mới nếu bị 401" /></div>
+          <div className="hero-actions" style={{ justifyContent: 'flex-end' }}>
+            <button onClick={() => setTokenVisible(v => !v)}>{tokenVisible ? '🙈 Hide token' : '👁 Show token'}</button>
+            <button onClick={saveSettings}>💾 Save</button>
+            <button onClick={fetchData}>🧪 Test connection</button>
           </div>
-        )}
+        </div>
 
         <div className="toolbar card sticky-toolbar" style={{ marginBottom: 12 }}>
           <input placeholder="Tìm merchant/product..." value={query} onChange={e => setQuery(e.target.value)} />
