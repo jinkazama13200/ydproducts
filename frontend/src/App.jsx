@@ -1,24 +1,12 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 const API_URL = 'http://localhost:8787/api/running-products';
-const HOT_VIDEO = `${import.meta.env.BASE_URL}hot-icon.mp4`;
-const WARM_VIDEO = `${import.meta.env.BASE_URL}warm-icon.mp4`;
-const IDLE_VIDEO = `${import.meta.env.BASE_URL}idle-icon.mp4`;
+const PS5_BG = 'https://motionbgs.com/media/2513/playstation-5-startup.960x540.mp4';
 
 function LevelIcon({ n }) {
-  const [failed, setFailed] = useState(false);
-
-  if (n >= 10) {
-    if (failed) return '🔥';
-    return <video className="hot-gif" src={HOT_VIDEO} autoPlay muted loop playsInline onError={() => setFailed(true)} />;
-  }
-  if (n >= 3) {
-    if (failed) return '🟢';
-    return <video className="warm-gif" src={WARM_VIDEO} autoPlay muted loop playsInline onError={() => setFailed(true)} />;
-  }
-
-  if (failed) return '⚪';
-  return <video className="idle-gif" src={IDLE_VIDEO} autoPlay muted loop playsInline onError={() => setFailed(true)} />;
+  if (n >= 10) return <span className="ps-icon ps-triangle">▲</span>;
+  if (n >= 3) return <span className="ps-icon ps-circle">○</span>;
+  return <span className="ps-icon ps-square">□</span>;
 }
 
 function levelClass(n) {
@@ -244,13 +232,13 @@ export default function App() {
 
   return (
     <>
-      <video className="bg-video" autoPlay muted loop playsInline src="https://motionbgs.com/media/771/pirate-kings-adventure-one-piece.960x540.mp4" />
+      <video className="bg-video" autoPlay muted loop playsInline src={PS5_BG} />
       <div className="bg-overlay" />
       <div className="wrap">
         <div className="hero">
           <div>
-            <h1>⚡ 易达支付产品状态-Real Time</h1>
-            <p>Realtime theo merchant • Auto refresh 20s</p>
+            <h1>🎮 PS5 Dashboard: Product Monitor</h1>
+            <p>Real-time merchant tracking • System Active</p>
           </div>
           <div className="hero-actions">
             <span className={`health ${health.state}`}>API {health.state.toUpperCase()} {health.latencyMs ? `• ${health.latencyMs}ms` : ''}</span>
