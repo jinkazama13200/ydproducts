@@ -179,7 +179,6 @@ button:hover {
   transform: translateX(5px);
 }
 
-.lvl-row.hot { border-left: 4px solid #f97316; }
 .lvl-row.warm { border-left: 4px solid #22c55e; }
 .lvl-row.idle { border-left: 4px solid #64748b; }
 
@@ -198,7 +197,30 @@ button:hover {
   font-weight: bold;
 }
 
-.ps-triangle { color: #2ecc71; }
+.ps-triangle { color: #2ecc71; position: relative; }
+
+.lvl-row.hot {
+  border-left: 5px solid #ff4d00;
+  background: linear-gradient(90deg, rgba(255, 77, 0, 0.05), transparent);
+  position: relative;
+}
+
+.lvl-row.hot::after {
+  content: '🔥';
+  position: absolute;
+  right: 15px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 20px;
+  animation: fireFlicker 1.5s ease-in-out infinite;
+  opacity: 0.8;
+}
+
+@keyframes fireFlicker {
+  0%, 100% { transform: translateY(-50%) scale(1); filter: drop-shadow(0 0 2px #ff4d00); }
+  50% { transform: translateY(-50%) scale(1.2); filter: drop-shadow(0 0 10px #ff4d00); }
+}
+
 .ps-circle { color: #e74c3c; }
 .ps-square { color: #9b59b6; }
 .ps-cross { color: #3498db; }
