@@ -244,7 +244,7 @@ export default function App() {
 
   return (
     <>
-      <video className="bg-video" autoPlay muted loop playsInline src="https://motionbgs.com/media/9275/reze-blue-butterfly.960x540.mp4" />
+      <div className="bg-video" style={{ background: 'url(https://4kwallpapers.com/images/walls/thumbs_3t/24371.jpg) center/cover no-repeat fixed' }} />
       <div className="bg-overlay" />
       <div className="wrap">
         <div className="hero">
