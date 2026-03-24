@@ -244,7 +244,7 @@ export default function App() {
 
   return (
     <>
-      <video className="bg-video" autoPlay muted loop playsInline src="https://motionbgs.com/media/771/pirate-kings-adventure-one-piece.960x540.mp4" />
+      <video className="bg-video" autoPlay muted loop playsInline src="https://motionbgs.com/media/9275/reze-blue-butterfly.960x540.mp4" />
       <div className="bg-overlay" />
       <div className="wrap">
         <div className="hero">
