@@ -279,7 +279,7 @@ app.get('/api/running-products', async (req, res) => {
     ]);
 
     const running = statRecords
-      .filter(r => Number(r.totalOrderCount || 0) > 0 && Number(r.orderSuccessCount || 0) > 0)
+      .filter(r => Number(r.totalOrderCount || 0) > 0)
       .map(r => ({
         merchant: r.mchName || 'UNKNOWN',
         product: r.productName || 'UNKNOWN',

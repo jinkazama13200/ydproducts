@@ -145,13 +145,7 @@ export default function App() {
       .map(([merchant, items]) => {
         const list = Array.isArray(items) ? items : [];
         const normalized = list.map((x) => ({ ...x, ordersInWindow: Number(x.ordersInWindow || 0) }));
-        const activeItems = normalized.filter((x) => {
-          const key = `${merchant}|||${x.product}`;
-          if (x.ordersInWindow > 0) return true;
-          const lastActive = lastActiveRef.current.get(key);
-          if (!lastActive) return false;
-          return (now - lastActive) < INACTIVE_MS;
-        });
+        const activeItems = normalized;
         const sumOrders = activeItems.reduce((s, x) => s + x.ordersInWindow, 0);
         const allInactive = activeItems.length === 0;
         return [merchant, activeItems, sumOrders, allInactive, normalized.length];
