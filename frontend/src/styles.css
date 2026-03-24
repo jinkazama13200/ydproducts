@@ -179,7 +179,29 @@ button:hover {
   transform: translateX(5px);
 }
 
-.lvl-row.warm { border-left: 4px solid #22c55e; }
+.lvl-row.warm {
+  border-left: 4px solid #2ecc71;
+  background: linear-gradient(90deg, rgba(46, 204, 113, 0.05), transparent);
+  position: relative;
+}
+
+.lvl-row.warm::after {
+  content: '⚡';
+  position: absolute;
+  right: 15px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 18px;
+  animation: boltPulse 1.2s ease-in-out infinite;
+  opacity: 0.8;
+  color: #f1c40f;
+}
+
+@keyframes boltPulse {
+  0%, 100% { transform: translateY(-50%) scale(1); filter: drop-shadow(0 0 1px #f1c40f); }
+  50% { transform: translateY(-50%) scale(1.3); filter: drop-shadow(0 0 8px #f1c40f); }
+}
+
 .lvl-row.idle { border-left: 4px solid #64748b; }
 
 .name { font-weight: 600; font-size: 15px; color: #334155; }
