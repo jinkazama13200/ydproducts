@@ -27,12 +27,38 @@ function levelClass(n) {
   return 'idle';
 }
 
+function extractApiPayload(json) {
+  if (!json || typeof json !== 'object') {
+    throw new Error('API trả dữ liệu rỗng/không hợp lệ');
+  }
+
+  if (json.success === false) {
+    throw new Error(json?.error?.message || 'Fetch failed');
+  }
+
+  if (json.success === true) {
+    if (!json.data || typeof json.data !== 'object') {
+      throw new Error('API trả dữ liệu rỗng/không hợp lệ');
+    }
+    return {
+      payload: json.data,
+      meta: json.meta || {}
+    };
+  }
+
+  if (json.data && typeof json.data === 'object') {
+    return {
+      payload: json,
+      meta: json.meta || {}
+    };
+  }
+
+  throw new Error('API trả dữ liệu rỗng/không hợp lệ');
+}
+
 const defaultCfg = {
-  apiBase: 'https://yida-new-mgr-omnxqgbi-api.yznba.com',
-  origin: 'https://yida-new-mgr-y5cf7h6r.yznba.com',
   token: '',
-  maxPages: 20,
-  rateWindowMinutes: 5
+  internalKey: ''
 };
 
 export default function App() {
@@ -47,14 +73,13 @@ export default function App() {
   const [stale, setStale] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [tokenVisible, setTokenVisible] = useState(false);
+  const [internalKeyVisible, setInternalKeyVisible] = useState(false);
   const [changedKeys, setChangedKeys] = useState(new Set());
   const prevMapRef = useRef(new Map());
   const lastActiveRef = useRef(new Map());
-  // Backend đã kiểm tra rateWindowMinutes (5 phút), nên frontend chỉ cần đợi thêm 5 phút
-  // Tổng = rateWindow (5) + frontend (5) = 10 phút
   const INACTIVE_MS = 5 * 60 * 1000;
   const [cfg, setCfg] = useState(() => {
-    const saved = localStorage.getItem('desktopCfg');
+    const saved = localStorage.getItem('webCfg');
     return saved ? { ...defaultCfg, ...JSON.parse(saved) } : defaultCfg;
   });
 
@@ -68,25 +93,23 @@ export default function App() {
 
       for (let attempt = 1; attempt <= 2; attempt++) {
         try {
-          if (window.desktopAPI?.getRunningProducts) {
-            json = await Promise.race([
-              window.desktopAPI.getRunningProducts(cfg),
-              new Promise((_, rej) => setTimeout(() => rej(new Error('Timeout desktop API')), 10000))
-            ]);
-          } else {
-            const controller = new AbortController();
-            const timer = setTimeout(() => controller.abort(), 10000);
-            const url = cfg.token ? `${API_URL}?token=${encodeURIComponent(cfg.token)}` : API_URL;
-            const res = await fetch(url, { signal: controller.signal });
-            clearTimeout(timer);
-            json = await res.json();
-            if (!res.ok) throw new Error(json.error || 'Fetch failed');
+          const controller = new AbortController();
+          const timer = setTimeout(() => controller.abort(), 10000);
+          const headers = {};
+          if (cfg.token?.trim()) headers['x-product-token'] = cfg.token.trim();
+          if (cfg.internalKey?.trim()) headers['x-internal-key'] = cfg.internalKey.trim();
+
+          const res = await fetch(API_URL, {
+            signal: controller.signal,
+            headers
+          });
+          clearTimeout(timer);
+          json = await res.json();
+          if (!res.ok) {
+            throw new Error(json?.error?.message || json?.message || 'Fetch failed');
           }
 
-          if (!json?.data || typeof json.data !== 'object') {
-            throw new Error('API trả dữ liệu rỗng/không hợp lệ');
-          }
-
+          extractApiPayload(json);
           break;
         } catch (e) {
           lastErr = e;
@@ -96,8 +119,9 @@ export default function App() {
 
       if (!json) throw lastErr || new Error('Fetch failed');
 
+      const { payload } = extractApiPayload(json);
       const latencyMs = Math.round(performance.now() - t0);
-      setData(json);
+      setData(payload);
       setLastOkAt(new Date().toISOString());
       setStale(false);
       setHealth({ state: latencyMs > 2000 ? 'slow' : 'ok', latencyMs });
@@ -113,7 +137,7 @@ export default function App() {
   }, [cfg]);
 
   useEffect(() => {
-    localStorage.setItem('desktopCfg', JSON.stringify(cfg));
+    localStorage.setItem('webCfg', JSON.stringify(cfg));
   }, [cfg]);
 
   useEffect(() => {
@@ -126,7 +150,6 @@ export default function App() {
     data?.data && typeof data.data === 'object' ? data.data : {}
   ), [data]);
 
-  // Track last active time per product
   useEffect(() => {
     const now = Date.now();
     for (const [merchant, items] of Object.entries(safeData)) {
@@ -212,7 +235,7 @@ export default function App() {
   };
 
   const saveSettings = () => {
-    localStorage.setItem('desktopCfg', JSON.stringify(cfg));
+    localStorage.setItem('webCfg', JSON.stringify(cfg));
   };
 
   const totalOrders5m = merchantEntries.reduce((s, [, , sum]) => s + sum, 0);
@@ -257,20 +280,15 @@ export default function App() {
             <button onClick={fetchData} className={refreshing ? 'bounce' : ''}>↻ Refresh now</button>
             <button onClick={exportCsv}>⬇ Export CSV</button>
             <button onClick={toggleFullscreen}>{isFullscreen ? '⬜ Exit Fullscreen' : '🖥 Fullscreen'}</button>
-            {window.desktopAPI?.checkUpdatesNow && <button onClick={() => window.desktopAPI.checkUpdatesNow()}>🆙 Check update now</button>}
           </div>
         </div>
 
         <div className="card" style={{ marginBottom: 12 }}>
-          {window.desktopAPI?.getRunningProducts && (
-            <>
-              <div className="row"><div className="name">API Base</div><input value={cfg.apiBase} onChange={e => setCfg({ ...cfg, apiBase: e.target.value })} /></div>
-              <div className="row"><div className="name">Origin</div><input value={cfg.origin} onChange={e => setCfg({ ...cfg, origin: e.target.value })} /></div>
-            </>
-          )}
-          <div className="row"><div className="name">Token</div><input type={tokenVisible ? 'text' : 'password'} value={cfg.token} onChange={e => setCfg({ ...cfg, token: e.target.value })} placeholder="Paste itoken mới nếu bị 401" /></div>
+          <div className="row"><div className="name">Token</div><input type={tokenVisible ? 'text' : 'password'} value={cfg.token} onChange={e => setCfg({ ...cfg, token: e.target.value })} placeholder="Paste x-product-token nếu không dùng token từ env backend" /></div>
+          <div className="row"><div className="name">Internal Key</div><input type={internalKeyVisible ? 'text' : 'password'} value={cfg.internalKey} onChange={e => setCfg({ ...cfg, internalKey: e.target.value })} placeholder="Paste x-internal-key nếu backend yêu cầu" /></div>
           <div className="hero-actions" style={{ justifyContent: 'flex-end' }}>
             <button onClick={() => setTokenVisible(v => !v)}>{tokenVisible ? '🙈 Hide token' : '👁 Show token'}</button>
+            <button onClick={() => setInternalKeyVisible(v => !v)}>{internalKeyVisible ? '🙈 Hide internal key' : '🔐 Show internal key'}</button>
             <button onClick={saveSettings}>💾 Save</button>
             <button onClick={fetchData}>🧪 Test connection</button>
           </div>

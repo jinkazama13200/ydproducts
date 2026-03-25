@@ -1,21 +1,31 @@
 const express = require('express');
 const cors = require('cors');
 const axios = require('axios');
+const crypto = require('crypto');
 require('dotenv').config();
 
 const app = express();
-app.use(cors());
+app.disable('x-powered-by');
 
-const PORT = Number(process.env.PORT || 8787);
+function toNumber(value, fallback) {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : fallback;
+}
+
+const PORT = toNumber(process.env.PORT, 8787);
 const PRODUCT_API_BASE = process.env.PRODUCT_API_BASE || 'https://yida-new-mgr-omnxqgbi-api.yznba.com';
 const PRODUCT_ORIGIN = process.env.PRODUCT_ORIGIN || 'https://yida-new-mgr-y5cf7h6r.yznba.com';
-const PRODUCT_TOKEN = process.env.PRODUCT_TOKEN || '';
-const MAX_PAGES = Number(process.env.MAX_PAGES || 20);
-const RATE_WINDOW_MINUTES = Number(process.env.RATE_WINDOW_MINUTES || 5);
-const CACHE_TTL_MS = Number(process.env.CACHE_TTL_MS || 15000);
-const UPSTREAM_TIMEOUT_MS = Number(process.env.UPSTREAM_TIMEOUT_MS || 15000);
-const UPSTREAM_RETRIES = Number(process.env.UPSTREAM_RETRIES || 1);
-const REQUESTS_PER_MINUTE = Number(process.env.REQUESTS_PER_MINUTE || 120);
+const PRODUCT_TOKEN = String(process.env.PRODUCT_TOKEN || '').trim();
+const INTERNAL_API_KEY = String(process.env.INTERNAL_API_KEY || '').trim();
+const ALLOWED_ORIGINS = String(process.env.ALLOWED_ORIGINS || '').split(',').map(s => s.trim()).filter(Boolean);
+const NODE_ENV = process.env.NODE_ENV || 'development';
+const MAX_PAGES = Math.max(1, toNumber(process.env.MAX_PAGES, 20));
+const RATE_WINDOW_MINUTES = Math.max(1, toNumber(process.env.RATE_WINDOW_MINUTES, 5));
+const CACHE_TTL_MS = Math.max(1000, toNumber(process.env.CACHE_TTL_MS, 15000));
+const UPSTREAM_TIMEOUT_MS = Math.max(1000, toNumber(process.env.UPSTREAM_TIMEOUT_MS, 15000));
+const UPSTREAM_RETRIES = Math.max(0, toNumber(process.env.UPSTREAM_RETRIES, 1));
+const REQUESTS_PER_MINUTE = Math.max(1, toNumber(process.env.REQUESTS_PER_MINUTE, 120));
+const ENABLE_DEBUG_UPSTREAM = String(process.env.ENABLE_DEBUG_UPSTREAM || (NODE_ENV !== 'production' ? 'true' : 'false')).toLowerCase() === 'true';
 
 const runtimeState = {
   startedAt: Date.now(),
@@ -34,8 +44,6 @@ function log(level, event, meta = {}) {
     ...meta
   }));
 }
-
-function pad(n) { return String(n).padStart(2, '0'); }
 
 function getTzParts(date = new Date(), timeZone = 'Asia/Singapore') {
   const parts = new Intl.DateTimeFormat('en-US', {
@@ -87,6 +95,40 @@ function tokenId(token) {
   return `${token.slice(0, 6)}...${token.slice(-4)}`;
 }
 
+function tokenCacheKey(token) {
+  return crypto.createHash('sha256').update(token).digest('hex');
+}
+
+function cleanupExpiredCache() {
+  const now = Date.now();
+  for (const [key, entry] of cache.entries()) {
+    if (!entry || entry.expiresAt <= now) cache.delete(key);
+  }
+}
+
+function cleanupExpiredRateBuckets() {
+  const now = Date.now();
+  for (const [ip, bucket] of ipBuckets.entries()) {
+    if (!bucket || now - bucket.windowStart >= 60000) ipBuckets.delete(ip);
+  }
+}
+
+function buildSuccess(data, meta = {}) {
+  return { success: true, data, meta };
+}
+
+function buildErrorBody(code, message, retryable = false, extra = {}) {
+  return {
+    success: false,
+    error: {
+      code,
+      message,
+      retryable,
+      ...extra
+    }
+  };
+}
+
 async function getWithRetry(url, options = {}) {
   let lastErr;
   const attempts = Math.max(1, UPSTREAM_RETRIES + 1);
@@ -131,7 +173,8 @@ async function fetchMchProductStatAll(token) {
     });
     records = records.concat(res?.data?.data?.records || []);
   }
-  return records;
+
+  return { records, totalPages, pagesFetched: pagesToFetch, truncated: totalPages > pagesToFetch };
 }
 
 async function fetchRateMap(token) {
@@ -150,11 +193,12 @@ async function fetchRateMap(token) {
 
   const map = new Map();
   const records = res?.data?.data?.records || [];
+  const total = Number(res?.data?.data?.total || records.length);
   for (const r of records) {
     const k = `${r.mchName || 'UNKNOWN'}|||${r.productName || 'UNKNOWN'}`;
     map.set(k, (map.get(k) || 0) + 1);
   }
-  return map;
+  return { map, truncated: total > records.length, fetchedCount: records.length, total };
 }
 
 function buildApiError(e) {
@@ -162,31 +206,47 @@ function buildApiError(e) {
   if (status === 401) {
     return {
       status: 401,
-      body: { code: 'UPSTREAM_401', message: 'Yida token expired/invalid (401). Vui lòng lấy token mới rồi thử lại.', retryable: false }
+      body: buildErrorBody('UPSTREAM_401', 'Yida token expired/invalid (401). Vui lòng lấy token mới rồi thử lại.', false)
     };
   }
 
   if (e?.code === 'ECONNABORTED') {
     return {
       status: 504,
-      body: { code: 'UPSTREAM_TIMEOUT', message: 'Upstream timeout', retryable: true }
+      body: buildErrorBody('UPSTREAM_TIMEOUT', 'Upstream timeout', true)
     };
   }
 
   if (status >= 500 && status < 600) {
     return {
       status: 502,
-      body: { code: 'UPSTREAM_5XX', message: 'Upstream server error', retryable: true }
+      body: buildErrorBody('UPSTREAM_5XX', 'Upstream server error', true)
     };
   }
 
   return {
     status: status >= 400 && status < 600 ? status : 500,
-    body: { code: 'INTERNAL_ERROR', message: e?.message || 'Unknown error', retryable: false }
+    body: buildErrorBody('INTERNAL_ERROR', e?.message || 'Unknown error', false)
   };
 }
 
-// lightweight in-memory rate limit
+app.use(cors({
+  origin(origin, callback) {
+    if (!origin) return callback(null, true);
+    if (ALLOWED_ORIGINS.length === 0) return callback(null, true);
+    if (ALLOWED_ORIGINS.includes(origin)) return callback(null, true);
+    return callback(new Error('Not allowed by CORS'));
+  }
+}));
+
+app.use((req, res, next) => {
+  cleanupExpiredCache();
+  cleanupExpiredRateBuckets();
+  req.reqId = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  res.setHeader('x-request-id', req.reqId);
+  next();
+});
+
 app.use((req, res, next) => {
   const ip = req.ip || req.socket?.remoteAddress || 'unknown';
   const now = Date.now();
@@ -198,28 +258,40 @@ app.use((req, res, next) => {
 
   b.count += 1;
   if (b.count > REQUESTS_PER_MINUTE) {
-    return res.status(429).json({ code: 'RATE_LIMITED', message: 'Too many requests', retryable: true });
+    return res.status(429).json(buildErrorBody('RATE_LIMITED', 'Too many requests', true));
+  }
+  return next();
+});
+
+app.use('/api', (req, res, next) => {
+  if (!INTERNAL_API_KEY) return next();
+  const provided = String(req.header('x-internal-key') || '').trim();
+  if (!provided || provided !== INTERNAL_API_KEY) {
+    return res.status(401).json(buildErrorBody('UNAUTHORIZED', 'Missing or invalid internal API key', false));
   }
   return next();
 });
 
 app.get('/health', (_, res) => {
   const now = Date.now();
-  res.json({
+  return res.json(buildSuccess({
     ok: true,
     uptimeSec: Math.floor((now - runtimeState.startedAt) / 1000),
     cacheTtlMs: CACHE_TTL_MS,
     cacheEntries: cache.size,
     lastSuccessAt: runtimeState.lastSuccessAt,
     lastError: runtimeState.lastError
-  });
+  }));
 });
 
 app.get('/api/debug/upstream', async (req, res) => {
-  const reqId = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-  const token = String(req.query.token || req.header('x-product-token') || PRODUCT_TOKEN || '').trim();
+  if (!ENABLE_DEBUG_UPSTREAM) {
+    return res.status(404).json(buildErrorBody('NOT_FOUND', 'Debug endpoint is disabled', false));
+  }
+
+  const token = String(req.header('x-product-token') || PRODUCT_TOKEN || '').trim();
   if (!token) {
-    return res.status(400).json({ code: 'MISSING_TOKEN', message: 'Missing token', retryable: false });
+    return res.status(400).json(buildErrorBody('MISSING_TOKEN', 'Missing token', false));
   }
 
   const t0 = Date.now();
@@ -231,54 +303,52 @@ app.get('/api/debug/upstream', async (req, res) => {
       headers: headers(token)
     });
 
-    return res.json({
-      ok: true,
-      reqId,
-      ms: Date.now() - t0,
+    return res.json(buildSuccess({
       upstreamStatus: Number(test?.status || 200),
       upstreamCode: Number(test?.data?.code),
       tokenHint: tokenId(token),
       dateRange: { start, end },
       sampleCount: Array.isArray(test?.data?.data?.records) ? test.data.data.records.length : 0
-    });
+    }, {
+      reqId: req.reqId,
+      ms: Date.now() - t0
+    }));
   } catch (e) {
     const apiErr = buildApiError(e);
     return res.status(apiErr.status).json({
-      ok: false,
-      reqId,
-      ms: Date.now() - t0,
-      tokenHint: tokenId(token),
-      upstreamStatus: Number(e?.response?.status || 0),
-      code: apiErr.body.code,
-      message: apiErr.body.message,
-      retryable: apiErr.body.retryable
+      ...apiErr.body,
+      meta: {
+        reqId: req.reqId,
+        ms: Date.now() - t0,
+        tokenHint: tokenId(token),
+        upstreamStatus: Number(e?.response?.status || 0)
+      }
     });
   }
 });
 
 app.get('/api/running-products', async (req, res) => {
-  const reqId = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   const t0 = Date.now();
 
   try {
-    const runtimeToken = String(req.query.token || req.header('x-product-token') || PRODUCT_TOKEN || '').trim();
+    const runtimeToken = String(req.header('x-product-token') || PRODUCT_TOKEN || '').trim();
     if (!runtimeToken) {
-      return res.status(400).json({ code: 'MISSING_TOKEN', message: 'Missing PRODUCT_TOKEN', retryable: false });
+      return res.status(400).json(buildErrorBody('MISSING_TOKEN', 'Missing PRODUCT_TOKEN', false));
     }
 
-    const cacheKey = runtimeToken;
+    const cacheKey = tokenCacheKey(runtimeToken);
     const hit = cache.get(cacheKey);
     if (hit && hit.expiresAt > Date.now()) {
-      log('info', 'running_products_cache_hit', { reqId, token: tokenId(runtimeToken), ms: Date.now() - t0 });
+      log('info', 'running_products_cache_hit', { reqId: req.reqId, token: tokenId(runtimeToken), ms: Date.now() - t0 });
       return res.json(hit.payload);
     }
 
-    const [statRecords, rateMap] = await Promise.all([
+    const [statResult, rateResult] = await Promise.all([
       fetchMchProductStatAll(runtimeToken),
       fetchRateMap(runtimeToken)
     ]);
 
-    const running = statRecords
+    const running = statResult.records
       .filter(r => Number(r.totalOrderCount || 0) > 0)
       .map(r => ({
         merchant: r.mchName || 'UNKNOWN',
@@ -286,7 +356,7 @@ app.get('/api/running-products', async (req, res) => {
         totalOrderCount: Number(r.totalOrderCount || 0),
         orderSuccessCount: Number(r.orderSuccessCount || 0),
         totalAmount: Number(r.totalAmount || 0),
-        ordersInWindow: rateMap.get(`${r.mchName || 'UNKNOWN'}|||${r.productName || 'UNKNOWN'}`) || 0
+        ordersInWindow: rateResult.map.get(`${r.mchName || 'UNKNOWN'}|||${r.productName || 'UNKNOWN'}`) || 0
       }));
 
     const grouped = {};
@@ -299,23 +369,32 @@ app.get('/api/running-products', async (req, res) => {
       grouped[k].sort((a, b) => b.ordersInWindow - a.ordersInWindow || b.totalAmount - a.totalAmount);
     }
 
-    const payload = {
+    const payload = buildSuccess({
       fetchedAt: new Date().toISOString(),
       rateWindowMinutes: RATE_WINDOW_MINUTES,
       merchantCount: Object.keys(grouped).length,
       pairCount: running.length,
       data: grouped
-    };
+    }, {
+      reqId: req.reqId,
+      statPagesFetched: statResult.pagesFetched,
+      statTotalPages: statResult.totalPages,
+      statTruncated: statResult.truncated,
+      payOrderFetchedCount: rateResult.fetchedCount,
+      payOrderTotal: rateResult.total,
+      payOrderTruncated: rateResult.truncated,
+      ms: Date.now() - t0
+    });
 
     cache.set(cacheKey, { expiresAt: Date.now() + CACHE_TTL_MS, payload });
     runtimeState.lastSuccessAt = new Date().toISOString();
     runtimeState.lastError = null;
 
     log('info', 'running_products_ok', {
-      reqId,
+      reqId: req.reqId,
       token: tokenId(runtimeToken),
-      merchants: payload.merchantCount,
-      pairs: payload.pairCount,
+      merchants: payload.data.merchantCount,
+      pairs: payload.data.pairCount,
       ms: Date.now() - t0
     });
 
@@ -324,22 +403,60 @@ app.get('/api/running-products', async (req, res) => {
     const apiErr = buildApiError(e);
     runtimeState.lastError = {
       at: new Date().toISOString(),
-      code: apiErr.body.code,
-      message: apiErr.body.message
+      code: apiErr.body.error?.code,
+      message: apiErr.body.error?.message
     };
 
     log('error', 'running_products_error', {
-      reqId,
-      code: apiErr.body.code,
+      reqId: req.reqId,
+      code: apiErr.body.error?.code,
       status: apiErr.status,
-      message: apiErr.body.message,
+      message: apiErr.body.error?.message,
       ms: Date.now() - t0
     });
 
-    return res.status(apiErr.status).json(apiErr.body);
+    return res.status(apiErr.status).json({
+      ...apiErr.body,
+      meta: {
+        reqId: req.reqId,
+        ms: Date.now() - t0
+      }
+    });
   }
 });
 
-app.listen(PORT, () => {
-  log('info', 'backend_started', { port: PORT });
+app.use((err, req, res, next) => {
+  if (res.headersSent) return next(err);
+  const status = err?.message === 'Not allowed by CORS' ? 403 : 500;
+  log('error', 'unhandled_error', {
+    reqId: req?.reqId,
+    status,
+    message: err?.message || 'Unknown error'
+  });
+  return res.status(status).json(buildErrorBody(status === 403 ? 'CORS_FORBIDDEN' : 'INTERNAL_ERROR', err?.message || 'Unknown error', false));
 });
+
+const server = app.listen(PORT, () => {
+  log('info', 'backend_started', {
+    port: PORT,
+    nodeEnv: NODE_ENV,
+    debugUpstreamEnabled: ENABLE_DEBUG_UPSTREAM,
+    allowedOrigins: ALLOWED_ORIGINS.length
+  });
+});
+
+function shutdown(signal) {
+  log('info', 'shutdown_started', { signal });
+  server.close(() => {
+    log('info', 'shutdown_complete', { signal });
+    process.exit(0);
+  });
+
+  setTimeout(() => {
+    log('error', 'shutdown_forced', { signal });
+    process.exit(1);
+  }, 10000).unref();
+}
+
+process.on('SIGINT', () => shutdown('SIGINT'));
+process.on('SIGTERM', () => shutdown('SIGTERM'));

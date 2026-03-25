@@ -1,97 +1,93 @@
-# Yida Products Monitor (Web + Desktop EXE)
+# Yida Products Monitor (Web Only)
 
-## 1) Chạy Web local (Ubuntu/WSL)
+Project hiện dùng theo mô hình:
+- `backend/` → API proxy/aggregate cho Yida
+- `frontend/` → giao diện web React/Vite
 
-### Backend
+Không còn dùng app desktop/EXE trong flow chính nữa.
+
+---
+
+## 1) Chạy backend
+
 ```bash
 cd backend
 cp .env.example .env
-# sửa PRODUCT_TOKEN trong .env
+# sửa PRODUCT_TOKEN / INTERNAL_API_KEY / ALLOWED_ORIGINS nếu cần
 npm i
 npm start
 ```
 
-### Frontend
-```bash
-cd ../frontend
-npm i
-npm run dev
-```
+Backend mặc định chạy ở:
+- `http://localhost:8787`
 
-- Frontend: `http://localhost:5173`
-- Backend: `http://localhost:8787/api/running-products`
+Endpoint chính:
+- `GET /api/running-products`
 
----
-
-## 2) Build EXE trên Windows
-
-```bat
-cd C:\Users\yd0001\Downloads\ydproducts
-npm i
-npm --prefix frontend i
-npm run desktop:pack-win
-```
-
-File cài đặt nằm ở thư mục `dist\`.
+### Headers hỗ trợ
+- `x-product-token` → dùng khi không set `PRODUCT_TOKEN` ở backend
+- `x-internal-key` → dùng khi backend có set `INTERNAL_API_KEY`
 
 ---
 
-## 3) Auto Update qua GitHub Releases
-
-Repo update:
-- `jinkazama13200/ydproducts`
-
-### Mỗi lần release bản mới:
-1. Tăng version trong `package.json` (vd `1.0.1` -> `1.0.2`)
-2. Set token GitHub (PAT có scope `repo`)
-3. Publish
-
-```bat
-cd C:\Users\yd0001\Downloads\ydproducts
-set GH_TOKEN=YOUR_GITHUB_TOKEN
-npm run desktop:publish-win
-```
-
-App đang cài sẽ tự check update khi mở.
-
----
-
-## 4) Các lệnh chính
+## 2) Chạy frontend
 
 ```bash
-# Build frontend
+cd frontend
+npm i
+npm run dev -- --host 0.0.0.0
+```
+
+Frontend mặc định chạy ở:
+- `http://localhost:5173`
+
+---
+
+## 3) Chạy từ root project
+
+```bash
+# chạy backend
+npm run backend:start
+
+# chạy frontend dev
+npm run frontend:dev
+
+# build frontend
 npm run frontend:build
 
-# Chạy desktop local
-npm run desktop:start
-
-# Chạy desktop debug
-npm run desktop:start:debug
-
-# Build installer Windows
-npm run desktop:pack-win
-
-# Build + publish release Windows
-npm run desktop:publish-win
+# preview frontend production build
+npm run frontend:preview
 ```
 
 ---
 
-## 5) Mapping icon mức đơn (hiện tại)
+## 4) Build frontend
+
+```bash
+cd frontend
+npm run build
+```
+
+Output nằm ở:
+- `frontend/dist/`
+
+---
+
+## 5) Mapping icon mức đơn
 
 - `>=10 đơn`: `frontend/public/hot-icon.mp4`
 - `3–9 đơn`: `frontend/public/warm-icon.mp4`
 - `<3 đơn`: `frontend/public/idle-icon.mp4`
 
-Có fallback emoji khi media lỗi:
+Fallback emoji khi media lỗi:
 - `>=10` -> 🔥
 - `3–9` -> 🟢
 - `<3` -> ⚪
 
 ---
 
-## 6) Lưu ý
+## 6) Ghi chú
 
-- Nếu app trắng màn hình khi build EXE: đảm bảo `frontend/vite.config.js` có `base: './'`.
-- Nếu icon không hiện: kiểm tra đủ file icon trong `frontend/public` trước khi build.
-- Khi publish auto-update: bắt buộc phải tăng version, nếu không app sẽ không báo bản mới.
+- Frontend đã chuyển sang gọi backend bằng header, không dùng `?token=` nữa.
+- Nếu backend bật `INTERNAL_API_KEY`, frontend phải nhập thêm `Internal Key`.
+- Các file/folder desktop cũ có thể được archive hoặc xóa sau nếu chắc chắn không cần giữ nữa.
