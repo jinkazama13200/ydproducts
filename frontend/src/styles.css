@@ -31,10 +31,31 @@ body{font-family:'JetBrains Mono',monospace;background:var(--bg);color:var(--tex
 .health.slow{background:rgba(245,158,11,.14);color:#fde68a;border-color:rgba(245,158,11,.3)}
 .health.error{background:rgba(239,68,68,.14);color:#fecaca;border-color:rgba(239,68,68,.3)}
 .health.idle{background:rgba(103,232,249,.08);color:#c8f4fb;border-color:rgba(103,232,249,.18)}
-button{background:linear-gradient(135deg,#0891b2,#0f766e);border:none;color:white;padding:10px 14px;border-radius:10px;font-weight:700;cursor:pointer;box-shadow:0 8px 20px rgba(6,182,212,.18);transition:transform .2s ease,box-shadow .2s ease,filter .2s ease}
+button{
+  background:linear-gradient(135deg,#0891b2,#0f766e);
+  border:none;
+  color:white;
+  padding:12px 16px;
+  min-height:44px;
+  border-radius:10px;
+  font-weight:700;
+  cursor:pointer;
+  box-shadow:0 8px 20px rgba(6,182,212,.18);
+  transition:transform .2s ease,box-shadow .2s ease,filter .2s ease;
+  touch-action:manipulation;
+}
 button:hover{transform:translateY(-1px);box-shadow:0 14px 26px rgba(6,182,212,.24);filter:saturate(1.05)}
 button:focus-visible{outline:2px solid #67e8f9;outline-offset:2px}
-select,input{background:rgba(6,18,36,.92);color:#dbeafe;border:1px solid rgba(103,232,249,.16);border-radius:10px}
+button:active{transform:translateY(1px)}
+select,input{
+  background:rgba(6,18,36,.92);
+  color:#dbeafe;
+  border:1px solid rgba(103,232,249,.16);
+  border-radius:10px;
+  min-height:44px;
+  font-size:14px;
+  touch-action:manipulation;
+}
 select:focus-visible,input:focus-visible{outline:2px solid #67e8f9;outline-offset:2px}
 input{width:65%;padding:9px 11px}
 select{padding:8px 10px}
@@ -129,9 +150,6 @@ kbd{background:rgba(103,232,249,.15);border:1px solid rgba(103,232,249,.3);borde
 @keyframes warmPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.1)}}
 @keyframes flashRow{0%{box-shadow:0 0 0 rgba(56,189,248,0)}50%{box-shadow:0 0 0 2px rgba(56,189,248,.45)}100%{box-shadow:0 0 0 rgba(56,189,248,0)}}
 @keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
-@media(max-width:980px){.summary{grid-template-columns:repeat(2,minmax(0,1fr))}.stats{grid-template-columns:repeat(2,minmax(0,1fr))}.toast-container{left:20px;right:20px;max-width:none}}
-@media(max-width:760px){.summary{grid-template-columns:1fr}.stats{grid-template-columns:1fr}.hero{flex-direction:column;align-items:flex-start;gap:10px}.hero h1{font-size:24px}input{width:100%}.toolbar input{width:100%}.wrap{padding:16px}.toast-container{top:auto;bottom:20px}}
-
 /* Accessibility: reduced motion */
 @media(prefers-reduced-motion:reduce){
   *{animation-duration:0.01ms!important;animation-iteration-count:1!important;transition-duration:0.01ms!important}
@@ -143,3 +161,387 @@ kbd{background:rgba(103,232,249,.15);border:1px solid rgba(103,232,249,.3);borde
   button{border:2px solid #fff}
   .level-indicator{border-width:2px}
 }
+
+/* ============================================
+   SKELETON LOADING ANIMATIONS
+   ============================================ */
+.skeleton{
+  background: linear-gradient(90deg, rgba(103,232,249,0.08) 25%, rgba(103,232,249,0.15) 50%, rgba(103,232,249,0.08) 75%);
+  background-size: 200% 100%;
+  border-radius: 8px;
+}
+
+.skeleton-kpi{
+  background: linear-gradient(180deg, rgba(8,22,40,.9), rgba(12,31,56,.78));
+  border: 1px solid rgba(103,232,249,.12);
+  border-radius: 14px;
+  padding: 14px;
+}
+
+.skeleton-table-row{
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 8px;
+  border-bottom: 1px solid rgba(148,163,184,0.08);
+}
+
+.skeleton-table-row > div{
+  height: 20px;
+  background: rgba(103,232,249,0.08);
+  border-radius: 4px;
+}
+
+.skeleton-card{
+  background: linear-gradient(180deg, rgba(8,20,38,.88), rgba(10,24,44,.78));
+  border: 1px solid rgba(103,232,249,.14);
+  border-radius: 16px;
+  padding: 14px;
+}
+
+/* ============================================
+   ADDITIONAL HOVER EFFECTS
+   ============================================ */
+.kpi-card:hover{
+  transform: translateY(-4px);
+  box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.stat:hover{
+  transform: translateY(-2px);
+  background: rgba(103,232,249,0.08);
+  transition: transform 0.2s ease, background 0.2s ease;
+}
+
+tbody tr:hover{
+  background: rgba(103,232,249,0.08);
+  transform: scale(1.002);
+  transition: background 0.15s ease, transform 0.15s ease;
+}
+
+/* ============================================
+   FADE-IN ANIMATIONS FOR NEW CONTENT
+   ============================================ */
+.fade-in-new{
+  animation: fadeInNew 0.4s ease-out;
+}
+
+@keyframes fadeInNew{
+  from{
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to{
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Changed row flash animation enhancement */
+.changed{
+  animation: flashRowEnhanced 0.9s ease-out;
+}
+
+@keyframes flashRowEnhanced{
+  0%{
+    box-shadow: 0 0 0 rgba(56,189,248,0);
+    background: rgba(56,189,248,0.15);
+  }
+  50%{
+    box-shadow: 0 0 0 2px rgba(56,189,248,.45);
+    background: rgba(56,189,248,0.08);
+  }
+  100%{
+    box-shadow: 0 0 0 rgba(56,189,248,0);
+    background: transparent;
+  }
+}
+
+/* ============================================
+   MODAL STYLES (Settings Modal)
+   ============================================ */
+.modal-overlay{
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(4px);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.modal-content{
+  background: linear-gradient(180deg, rgba(8,20,38,.95), rgba(10,24,44,.92));
+  border: 1px solid rgba(103,232,249,.2);
+  border-radius: 16px;
+  max-width: 600px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+}
+
+.modal-header{
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px;
+  border-bottom: 1px solid rgba(103,232,249,.1);
+}
+
+.modal-header h2{
+  margin: 0;
+  font-size: 20px;
+  color: #f8fdff;
+}
+
+.modal-close{
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  font-size: 20px;
+  padding: 8px;
+  min-height: auto;
+  box-shadow: none;
+}
+
+.modal-close:hover{
+  color: #f8fdff;
+  transform: none;
+}
+
+.modal-body{
+  padding: 20px;
+}
+
+.modal-footer{
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 20px;
+  border-top: 1px solid rgba(103,232,249,.1);
+}
+
+.settings-section{
+  margin-bottom: 24px;
+}
+
+.settings-section:last-child{
+  margin-bottom: 0;
+}
+
+.settings-section h3{
+  margin: 0 0 12px 0;
+  font-size: 14px;
+  color: #67e8f9;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.form-row{
+  margin-bottom: 12px;
+}
+
+.form-row label{
+  display: block;
+  margin-bottom: 6px;
+  font-size: 13px;
+  color: #94a3b8;
+}
+
+.form-row input{
+  width: 100%;
+}
+
+.shortcuts-grid{
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  font-size: 13px;
+}
+
+.shortcuts-grid div{
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #cbd5e1;
+}
+
+.shortcuts-grid kbd{
+  background: rgba(103,232,249,.1);
+  border: 1px solid rgba(103,232,249,.2);
+  border-radius: 6px;
+  padding: 4px 8px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: #67e8f9;
+}
+
+/* ============================================
+   SEARCH HISTORY DROPDOWN
+   ============================================ */
+.search-history-dropdown{
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: linear-gradient(180deg, rgba(8,20,38,.98), rgba(10,24,44,.95));
+  border: 1px solid rgba(103,232,249,.2);
+  border-radius: 10px;
+  margin-top: 4px;
+  z-index: 100;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.4);
+  max-height: 250px;
+  overflow-y: auto;
+}
+
+.search-history-header{
+  padding: 10px 12px;
+  font-size: 11px;
+  color: #67e8f9;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-bottom: 1px solid rgba(103,232,249,.1);
+  font-weight: 700;
+}
+
+.search-history-item{
+  padding: 10px 12px;
+  cursor: pointer;
+  color: #dbeafe;
+  font-size: 13px;
+  transition: background 0.15s ease;
+}
+
+.search-history-item:hover{
+  background: rgba(103,232,249,.1);
+}
+
+/* ============================================
+   BUTTON VARIANTS
+   ============================================ */
+button.primary{
+  background: linear-gradient(135deg, #10b981, #059669);
+}
+
+/* ============================================
+   RESPONSIVE BREAKPOINTS - Mobile First
+   ============================================ */
+
+/* Mobile: < 640px - Card-only view, touch-optimized */
+@media(max-width: 639px){
+  .wrap{padding: 12px}
+  
+  /* Hero section - stacked layout */
+  .hero{
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 16px;
+  }
+  .hero h1{font-size: 20px}
+  .hero p{font-size: 12px}
+  .hero-actions{width: 100%; justify-content: flex-start}
+  .hero-actions button{flex: 1; min-width: 100px}
+  
+  /* KPI cards - single column on mobile */
+  .summary{grid-template-columns: 1fr; gap: 8px}
+  .summary>div, .kpi-card{min-height: 80px; padding: 12px}
+  .summary b, .kpi-card b{font-size: 20px}
+  .kpi-card small{font-size: 10px}
+  
+  /* Stats - 2 columns on mobile */
+  .stats{grid-template-columns: repeat(2, 1fr); gap: 8px}
+  .stat{padding: 10px; min-height: 64px}
+  .stat span{font-size: 11px}
+  .stat b{font-size: 14px}
+  
+  /* Grid - single column, card-only view */
+  .grid{grid-template-columns: 1fr; gap: 10px}
+  .card h3{font-size: 16px}
+  
+  /* Toolbar - collapsible, stacked layout */
+  .toolbar{flex-direction: column; align-items: stretch; gap: 8px}
+  .toolbar input{width: 100%}
+  .toolbar .hero-actions{flex-direction: column; align-items: stretch; gap: 8px}
+  .chk{font-size: 13px; padding: 4px 0}
+  .chk select{width: 100%; margin-top: 4px}
+  
+  /* Table - horizontal scroll with touch optimization */
+  .table-wrap{
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(103,232,249,0.3) transparent;
+  }
+  .table-wrap::-webkit-scrollbar{height: 6px}
+  .table-wrap::-webkit-scrollbar-track{background: transparent}
+  .table-wrap::-webkit-scrollbar-thumb{background: rgba(103,232,249,0.3); border-radius: 3px}
+  table{font-size: 12px; min-width: 600px}
+  tbody td, thead th{padding: 8px 6px}
+  
+  /* Buttons and inputs - touch-friendly (min 48px on mobile) */
+  button{min-height: 48px; padding: 14px 16px; font-size: 14px}
+  input, select{min-height: 48px; font-size: 16px; padding: 12px}
+  
+  /* Alert chips - smaller on mobile */
+  .alert-chip{padding: 8px 10px; font-size: 11px}
+  
+  /* Stopped tags */
+  .stopped-tag{font-size: 12px; padding: 6px 10px}
+  
+  /* Level icons - slightly larger for touch */
+  .lvl{width: 28px; height: 28px; flex: 0 0 28px}
+  .hot-gif, .warm-gif, .idle-gif{width: 26px; height: 26px}
+  
+  /* Modal - full screen on mobile */
+  .modal-content{
+    max-height: 100vh;
+    border-radius: 0;
+  }
+  .modal-header{padding: 16px}
+  .modal-body{padding: 16px}
+  .modal-footer{padding: 16px}
+  
+  .shortcuts-grid{grid-template-columns: 1fr}
+  .search-history-dropdown{max-height: 200px}
+}
+
+/* Tablet: 640px - 1023px */
+@media(min-width: 640px) and (max-width: 1023px){
+  .wrap{padding: 16px}
+  .hero h1{font-size: 24px}
+  
+  /* KPI cards - 2 columns on tablet */
+  .summary{grid-template-columns: repeat(2, 1fr); gap: 10px}
+  
+  /* Stats - 2 columns on tablet */
+  .stats{grid-template-columns: repeat(2, 1fr); gap: 10px}
+  
+  /* Grid - 2 columns on tablet */
+  .grid{grid-template-columns: repeat(2, 1fr); gap: 12px}
+  
+  /* Toolbar - wrap controls */
+  .toolbar input{width: 100%}
+  .toolbar .hero-actions{flex-wrap: wrap; gap: 8px}
+  .chk select{min-width: 120px}
+  
+  /* Touch-friendly but not as large as mobile */
+  button{min-height: 44px}
+  input, select{min-height: 44px}
+}
+
+/* Desktop: 1024px+ */
+@media(min-width: 1024px){
+  .wrap{padding: 24px}
+  .summary{grid-template-columns: repeat(5, 1fr)}
+  .stats{grid-template-columns: repeat(4, 1fr)}
+  .grid{grid-template-columns: repeat(auto-fill, minmax(320px, 1fr))}
+}
+
+/* ============================================
+   MODAL STYLES (Settings Modal)
+   ============================================ */
