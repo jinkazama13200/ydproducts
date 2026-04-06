@@ -380,14 +380,6 @@ function AppInner() {
   const [showLevelLabels, setShowLevelLabels] = useState(false);
   const [toolbarCollapsed, setToolbarCollapsed] = useState(false);
   
-  // Table state - called at top level, will handle empty data gracefully
-  const tableState = useTableState(flatRows || [], {
-    initialPageSize: 25,
-    pageSizeOptions: [25, 50, 100],
-    initialSortColumn: 'ordersInWindow',
-    initialSortDirection: 'desc'
-  });
-  
   const prevMapRef = useRef(new Map());
   const lastActiveRef = useRef(new Map());
   const prevOrdersRef = useRef(new Map());
@@ -719,6 +711,14 @@ function AppInner() {
     });
   }, [merchantEntries, sortBy]);
 
+  // Table state - must be after flatRows is defined
+  const tableState = useTableState(flatRows || [], {
+    initialPageSize: 25,
+    pageSizeOptions: [25, 50, 100],
+    initialSortColumn: 'ordersInWindow',
+    initialSortDirection: 'desc'
+  });
+
   useEffect(() => {
     rowsRef.current = flatRows;
   }, [flatRows]);
@@ -961,7 +961,7 @@ function AppInner() {
   
   // Safe data access helpers with null checks
   const safeRateWindow = data?.rateWindowMinutes || 5;
-  const hasData = data && Object.keys(data.data || {}).length > 0;
+  const hasData = data && Object.keys(data?.data || {}).length > 0;
 
   return (
     <>

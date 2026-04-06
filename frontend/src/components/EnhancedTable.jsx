@@ -149,7 +149,7 @@ export function EnhancedTable({
       }}>
         <h3 style={{ margin: 0 }}>📋 Running products table</h3>
         
-        <div style={{ display: 'flex', gap: 8, alignItems: center, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
           {/* Bulk Actions */}
           {selectedRows.size > 0 && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>

@@ -6,10 +6,11 @@ import { LineChart, Line, ResponsiveContainer } from 'recharts';
  */
 export function MerchantSparkline({ data, width = 80, height = 28 }) {
   const chartData = useMemo(() => {
-    if (!data || data.length === 0) return [];
+    const safeData = Array.isArray(data) ? data : [];
+    if (safeData.length === 0) return [];
     
     // Generate synthetic trend data from current orders
-    const baseValue = data.reduce((s, d) => s + Number(d.ordersInWindow || 0), 0) / data.length;
+    const baseValue = safeData.reduce((s, d) => s + Number(d?.ordersInWindow || 0), 0) / safeData.length;
     
     return Array.from({ length: 10 }, (_, i) => ({
       index: i,
@@ -17,7 +18,8 @@ export function MerchantSparkline({ data, width = 80, height = 28 }) {
     }));
   }, [data]);
 
-  if (!data || data.length === 0) {
+  const safeData = Array.isArray(data) ? data : [];
+  if (safeData.length === 0) {
     return (
       <div style={{ width, height, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <span style={{ color: '#64748b', fontSize: 9 }}>--</span>
@@ -26,7 +28,7 @@ export function MerchantSparkline({ data, width = 80, height = 28 }) {
   }
 
   const getColor = () => {
-    const total = data.reduce((s, d) => s + Number(d.ordersInWindow || 0), 0);
+    const total = safeData.reduce((s, d) => s + Number(d?.ordersInWindow || 0), 0);
     if (total >= 10) return '#fca5a5';
     if (total >= 3) return '#a5f3fc';
     return '#64748b';
@@ -54,7 +56,8 @@ export function MerchantSparkline({ data, width = 80, height = 28 }) {
  */
 export function WeekTrendChart({ data, width = 60, height = 32, color = '#06b6d4' }) {
   const chartData = useMemo(() => {
-    if (!data || data.length === 0) {
+    const safeData = Array.isArray(data) ? data : [];
+    if (safeData.length === 0) {
       // Generate placeholder data
       return Array.from({ length: 7 }, (_, i) => ({
         day: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'][i],
@@ -62,7 +65,7 @@ export function WeekTrendChart({ data, width = 60, height = 32, color = '#06b6d4
       }));
     }
     
-    return data.slice(0, 7).map((value, i) => ({
+    return safeData.slice(0, 7).map((value, i) => ({
       day: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'][i % 7],
       value: Number(value) || 0
     }));
@@ -88,7 +91,8 @@ export function WeekTrendChart({ data, width = 60, height = 32, color = '#06b6d4
  */
 export function ActivityBarChart({ data, width = 120, height = 40 }) {
   const chartData = useMemo(() => {
-    if (!data || data.length === 0) return [];
+    const safeData = Array.isArray(data) ? data : [];
+    if (safeData.length === 0) return [];
     
     const categories = [
       { label: 'Hot', threshold: 10, color: '#fca5a5' },
@@ -96,9 +100,9 @@ export function ActivityBarChart({ data, width = 120, height = 40 }) {
       { label: 'Idle', threshold: 0, color: '#94a3b8' }
     ];
 
-    const hot = data.filter(d => Number(d.ordersInWindow) >= 10).length;
-    const warm = data.filter(d => Number(d.ordersInWindow) >= 3 && Number(d.ordersInWindow) < 10).length;
-    const idle = data.filter(d => Number(d.ordersInWindow) < 3).length;
+    const hot = safeData.filter(d => Number(d?.ordersInWindow || 0) >= 10).length;
+    const warm = safeData.filter(d => Number(d?.ordersInWindow || 0) >= 3 && Number(d?.ordersInWindow || 0) < 10).length;
+    const idle = safeData.filter(d => Number(d?.ordersInWindow || 0) < 3).length;
 
     return [
       { label: 'Hot', value: hot, color: '#fca5a5' },
@@ -107,7 +111,8 @@ export function ActivityBarChart({ data, width = 120, height = 40 }) {
     ];
   }, [data]);
 
-  const maxValue = Math.max(...chartData.map(d => d.value), 1);
+  const safeValues = chartData.map(d => d.value);
+  const maxValue = safeValues.length > 0 ? Math.max(...safeValues, 1) : 1;
 
   return (
     <div style={{ width, height, display: 'flex', alignItems: 'flex-end', gap: 8 }}>
