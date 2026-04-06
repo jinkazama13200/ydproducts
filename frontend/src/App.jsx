@@ -645,15 +645,15 @@ export default function App() {
     return Object.entries(safeData)
       .map(([merchant, items]) => {
         const list = Array.isArray(items) ? items : [];
-        const normalized = list.map((x) => ({ ...x, ordersInWindow: Number(x.ordersInWindow || 0) }));
+        const normalized = list.map((x) => ({ ...x, ordersInWindow: Number(x?.ordersInWindow || 0) }));
         const activeItems = normalized.filter((x) => {
-          const key = `${merchant}|||${x.product}`;
-          if (x.ordersInWindow > 0) return true;
+          const key = `${merchant}|||${x?.product || ''}`;
+          if ((x?.ordersInWindow || 0) > 0) return true;
           const lastActive = lastActiveRef.current.get(key);
           if (!lastActive) return false;
           return (now - lastActive) < INACTIVE_MS;
         });
-        const sumOrders = activeItems.reduce((s, x) => s + x.ordersInWindow, 0);
+        const sumOrders = activeItems.reduce((s, x) => s + (x?.ordersInWindow || 0), 0);
         const allInactive = activeItems.length === 0;
         return [merchant, activeItems, sumOrders, allInactive, normalized.length];
       });
@@ -674,13 +674,13 @@ export default function App() {
         const filteredItems = items.filter((x) => {
           const q = query.trim().toLowerCase();
           const m = merchantFilter.trim().toLowerCase();
-          const queryHit = !q || merchant.toLowerCase().includes(q) || x.product.toLowerCase().includes(q);
+          const queryHit = !q || merchant.toLowerCase().includes(q) || (x?.product || '').toLowerCase().includes(q);
           const merchantHit = !m || merchant.toLowerCase().includes(m);
-          const levelHit = levelFilter === 'all' || levelClass(x.ordersInWindow) === levelFilter;
-          const ordersHit = x.ordersInWindow >= minOrders;
+          const levelHit = levelFilter === 'all' || levelClass(x?.ordersInWindow || 0) === levelFilter;
+          const ordersHit = (x?.ordersInWindow || 0) >= minOrders;
           return queryHit && merchantHit && levelHit && ordersHit;
         });
-        const nextSumOrders = filteredItems.reduce((s, x) => s + x.ordersInWindow, 0);
+        const nextSumOrders = filteredItems.reduce((s, x) => s + (x?.ordersInWindow || 0), 0);
         return [merchant, filteredItems, nextSumOrders, inactive, totalProducts];
       })
       .filter(([merchant, items, sumOrders]) => {
@@ -876,18 +876,35 @@ export default function App() {
   }, [focusedIndex, fetchData, addToast, clearAllFilters]);
 
   const exportCsv = () => {
-    if (!flatRows.length) return;
-    const rows = [['merchant', 'product', `orders_${data?.rateWindowMinutes || 5}m`, 'level']];
-    for (const item of flatRows) rows.push([item.merchant, item.product, String(item.ordersInWindow), levelLabel(item.ordersInWindow)]);
-    const csv = rows.map(r => r.map(v => `"${String(v).replaceAll('"', '""')}"`).join(',')).join('\n');
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `yida-products-${new Date().toISOString().replace(/[:.]/g, '-')}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
-    addToast('⬇ CSV exported!', 'success', 2000);
+    try {
+      if (!flatRows || flatRows.length === 0) {
+        addToast('⚠️ No data to export', 'warning', 2000);
+        return;
+      }
+      const rows = [['merchant', 'product', 'orders', 'level']];
+      const rateWin = data?.rateWindowMinutes || 5;
+      
+      for (const item of flatRows) {
+        rows.push([
+          item?.merchant || 'Unknown', 
+          item?.product || 'Unknown', 
+          String(item?.ordersInWindow || 0), 
+          levelLabel(item?.ordersInWindow || 0)
+        ]);
+      }
+      const csv = rows.map(r => r.map(v => '"' + String(v).replace(/"/g, '""') + '"').join(',')).join('\n');
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'yida-products-' + new Date().toISOString().replace(/[:.]/g, '-') + '.csv';
+      a.click();
+      URL.revokeObjectURL(url);
+      addToast('⬇ CSV exported!', 'success', 2000);
+    } catch (e) {
+      console.error('Export error:', e);
+      addToast('❌ Export failed: ' + (e?.message || 'Unknown error'), 'error', 5000);
+    }
   };
 
   const saveSettings = () => {
