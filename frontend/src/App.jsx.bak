@@ -876,34 +876,18 @@ export default function App() {
   }, [focusedIndex, fetchData, addToast, clearAllFilters]);
 
   const exportCsv = () => {
-    try {
-      if (!flatRows || flatRows.length === 0) {
-        addToast('⚠️ No data to export', 'warning', 2000);
-        return;
-      }
-      const rows = [['merchant', 'product', 'orders', 'level']];
-      
-      for (const item of flatRows) {
-        rows.push([
-          item.merchant || 'Unknown', 
-          item.product || 'Unknown', 
-          String(item.ordersInWindow || 0), 
-          levelLabel(item.ordersInWindow || 0)
-        ]);
-      }
-      const csv = rows.map(r => r.map(v => '"' + String(v).replace(/"/g, '""') + '"').join(',')).join('\n');
-      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'yida-products-' + new Date().toISOString().replace(/[:.]/g, '-') + '.csv';
-      a.click();
-      URL.revokeObjectURL(url);
-      addToast('⬇ CSV exported!', 'success', 2000);
-    } catch (e) {
-      console.error('Export error:', e);
-      addToast('❌ Export failed: ' + e.message, 'error', 5000);
-    }
+    if (!flatRows.length) return;
+    const rows = [['merchant', 'product', `orders_${data?.rateWindowMinutes || 5}m`, 'level']];
+    for (const item of flatRows) rows.push([item.merchant, item.product, String(item.ordersInWindow), levelLabel(item.ordersInWindow)]);
+    const csv = rows.map(r => r.map(v => `"${String(v).replaceAll('"', '""')}"`).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `yida-products-${new Date().toISOString().replace(/[:.]/g, '-')}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    addToast('⬇ CSV exported!', 'success', 2000);
   };
 
   const saveSettings = () => {
@@ -1260,7 +1244,7 @@ export default function App() {
                   >
                     <strong>{row.merchant}</strong>
                     <span>{row.product}</span>
-                    <b>{row.ordersInWindow}/{data?.rateWindowMinutes || 5}m</b>
+                    <b>{row.ordersInWindow}/{data.rateWindowMinutes}m</b>
                   </motion.div>
                 ))}
               </motion.div>
@@ -1661,7 +1645,7 @@ export default function App() {
             levelFilter={levelFilter}
             query={query}
             sortBy={sortBy}
-            rateWindowMinutes={data?.rateWindowMinutes || 5}
+            rateWindowMinutes={data.rateWindowMinutes}
             changedKeys={changedKeys}
             LevelIcon={LevelIcon}
             levelClass={levelClass}
@@ -1714,7 +1698,7 @@ export default function App() {
                         <span style={{ flex: 1 }}>{x.product}</span>
                         <span className={`level-chip ${levelClass(x.ordersInWindow)}`}>{levelLabel(x.ordersInWindow)}</span>
                       </div>
-                      <div className="rate" style={{ fontSize: '18px', minWidth: '80px' }}>{x.ordersInWindow}/{data?.rateWindowMinutes || 5}m</div>
+                      <div className="rate" style={{ fontSize: '18px', minWidth: '80px' }}>{x.ordersInWindow}/{data.rateWindowMinutes}m</div>
                     </motion.div>
                   );
                 })}
