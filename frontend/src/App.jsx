@@ -543,17 +543,17 @@ export default function App() {
       let hasHotProduct = false;
       let significantChanges = [];
 
-      for (const [merchant, items] of Object.entries(payload.data || {})) {
+      for (const [merchant, items] of Object.entries(payload?.data || {})) {
         const list = Array.isArray(items) ? items : [];
         for (const item of list) {
-          const key = `${merchant}|||${item.product}`;
-          const orders = Number(item.ordersInWindow || 0);
+          const key = `${merchant}|||${item?.product || ''}`;
+          const orders = Number(item?.ordersInWindow || 0);
           newOrders.set(key, orders);
           
           const prev = prevOrders.get(key);
           if (prev !== undefined && orders >= 10 && (prev < 10 || orders - prev >= 5)) {
             hasHotProduct = true;
-            significantChanges.push({ merchant, product: item.product, orders, prev: prev || 0 });
+            significantChanges.push({ merchant, product: item?.product || 'Unknown', orders, prev: prev || 0 });
           }
         }
       }
@@ -633,8 +633,8 @@ export default function App() {
     for (const [merchant, items] of Object.entries(safeData)) {
       const list = Array.isArray(items) ? items : [];
       for (const item of list) {
-        const key = `${merchant}|||${item.product}`;
-        const n = Number(item.ordersInWindow || 0);
+        const key = `${merchant}|||${item?.product || ''}`;
+        const n = Number(item?.ordersInWindow || 0);
         if (n > 0) lastActiveRef.current.set(key, now);
       }
     }
@@ -707,14 +707,14 @@ export default function App() {
           merchant,
           merchantOrders: sumOrders,
           ...item,
-          level: levelClass(item.ordersInWindow)
+          level: levelClass(item?.ordersInWindow || 0)
         });
       }
     }
     return rows.sort((a, b) => {
-      if (sortBy === 'name') return a.merchant.localeCompare(b.merchant) || a.product.localeCompare(b.product);
-      if (sortBy === 'products') return b.merchantOrders - a.merchantOrders || b.ordersInWindow - a.ordersInWindow;
-      return b.ordersInWindow - a.ordersInWindow || b.merchantOrders - a.merchantOrders;
+      if (sortBy === 'name') return (a?.merchant || '').localeCompare(b?.merchant || '') || (a?.product || '').localeCompare(b?.product || '');
+      if (sortBy === 'products') return (b?.merchantOrders || 0) - (a?.merchantOrders || 0) || (b?.ordersInWindow || 0) - (a?.ordersInWindow || 0);
+      return (b?.ordersInWindow || 0) - (a?.ordersInWindow || 0) || (b?.merchantOrders || 0) - (a?.merchantOrders || 0);
     });
   }, [merchantEntries, sortBy]);
 
@@ -726,10 +726,10 @@ export default function App() {
     const next = new Map();
     const changed = new Set();
     for (const row of flatRows) {
-      const key = `${row.merchant}|||${row.product}`;
+      const key = `${row?.merchant || ''}|||${row?.product || ''}`;
       const prev = prevMapRef.current.get(key);
-      next.set(key, row.ordersInWindow);
-      if (prev !== undefined && prev !== row.ordersInWindow) changed.add(key);
+      next.set(key, row?.ordersInWindow || 0);
+      if (prev !== undefined && prev !== (row?.ordersInWindow || 0)) changed.add(key);
     }
     prevMapRef.current = next;
     setChangedKeys(changed);
@@ -876,22 +876,28 @@ export default function App() {
   }, [focusedIndex, fetchData, addToast, clearAllFilters]);
 
   const exportCsv = () => {
-    if (!flatRows || flatRows.length === 0) {
-      addToast('⚠️ No data to export', 'warning', 2000);
-      return;
-    }
     try {
-      const rows = [['merchant', 'product', `orders_${safeRateWindow}m`, 'level']];
-      for (const item of flatRows) {
-        if (!item.merchant || !item.product) continue;
-        rows.push([item.merchant, item.product, String(item.ordersInWindow || 0), levelLabel(item.ordersInWindow)]);
+      if (!flatRows || flatRows.length === 0) {
+        addToast('⚠️ No data to export', 'warning', 2000);
+        return;
       }
-      const csv = rows.map(r => r.map(v => `"${String(v).replaceAll('"', '""')}"`).join(',')).join('\n');
+      const rows = [['merchant', 'product', 'orders', 'level']];
+      const rateWin = data?.rateWindowMinutes || 5;
+      
+      for (const item of flatRows) {
+        rows.push([
+          item?.merchant || 'Unknown', 
+          item?.product || 'Unknown', 
+          String(item?.ordersInWindow || 0), 
+          levelLabel(item?.ordersInWindow || 0)
+        ]);
+      }
+      const csv = rows.map(r => r.map(v => '"' + String(v).replace(/"/g, '""') + '"').join(',')).join('\n');
       const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `yida-products-${new Date().toISOString().replace(/[:.]/g, '-')}.csv`;
+      a.download = 'yida-products-' + new Date().toISOString().replace(/[:.]/g, '-') + '.csv';
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -899,7 +905,7 @@ export default function App() {
       addToast('⬇ CSV exported!', 'success', 2000);
     } catch (error) {
       console.error('Export CSV error:', error);
-      addToast('❌ Export failed: ' + error.message, 'error', 5000);
+      addToast('❌ Export failed: ' + (error?.message || 'Unknown error'), 'error', 5000);
     }
   };
 
@@ -923,14 +929,14 @@ export default function App() {
     }
   };
 
-  const totalOrders5m = merchantEntries.reduce((s, [, , sum]) => s + sum, 0);
-  const activeProducts = flatRows.length;
-  const hotCount = flatRows.filter(x => x.ordersInWindow >= 10).length;
-  const warmCount = flatRows.filter(x => x.ordersInWindow >= 3 && x.ordersInWindow < 10).length;
-  const changedRows = flatRows.filter((row) => changedKeys.has(`${row.merchant}|||${row.product}`));
+  const totalOrders5m = merchantEntries?.reduce((s, [, , sum]) => s + (sum || 0), 0) || 0;
+  const activeProducts = flatRows?.length || 0;
+  const hotCount = flatRows?.filter(x => (x?.ordersInWindow || 0) >= 10).length || 0;
+  const warmCount = flatRows?.filter(x => (x?.ordersInWindow || 0) >= 3 && (x?.ordersInWindow || 0) < 10).length || 0;
+  const changedRows = flatRows?.filter((row) => changedKeys.has(`${row?.merchant || ''}|||${row?.product || ''}`)) || [];
   const topAlerts = changedRows
     .slice()
-    .sort((a, b) => b.ordersInWindow - a.ordersInWindow)
+    .sort((a, b) => (b?.ordersInWindow || 0) - (a?.ordersInWindow || 0))
     .slice(0, 4);
 
   const toggleFullscreen = () => {
