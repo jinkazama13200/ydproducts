@@ -60,9 +60,10 @@ export function EnhancedTable({
 
   const renderRow = (index) => {
     const row = rows[index];
-    const rowKey = `${row.merchant}|||${row.product}`;
-    const isChanged = changedKeys.has(rowKey);
-    const isSelected = selectedRows.has(rowKey);
+    if (!row) return null;
+    const rowKey = `${row.merchant || 'unknown'}|||${row.product || 'unknown'}`;
+    const isChanged = changedKeys?.has(rowKey) || false;
+    const isSelected = selectedRows?.has(rowKey) || false;
 
     return (
       <div 
@@ -97,11 +98,11 @@ export function EnhancedTable({
         {visibleColumns.level && (
           <div style={{ padding: '0 8px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span className={`lvl ${levelClass(row.ordersInWindow)}`}>
-                <LevelIcon n={row.ordersInWindow} />
+              <span className={`lvl ${levelClass(row.ordersInWindow || 0)}`}>
+                <LevelIcon n={row.ordersInWindow || 0} />
               </span>
-              <span className={`level-chip ${levelClass(row.ordersInWindow)}`}>
-                {levelLabel(row.ordersInWindow)}
+              <span className={`level-chip ${levelClass(row.ordersInWindow || 0)}`}>
+                {levelLabel(row.ordersInWindow || 0)}
               </span>
             </div>
           </div>
@@ -109,27 +110,27 @@ export function EnhancedTable({
         
         {visibleColumns.merchant && (
           <div style={{ padding: '0 8px', fontWeight: 700 }}>
-            {row.merchant}
+            {row.merchant || 'Unknown'}
           </div>
         )}
         
         {visibleColumns.product && (
           <div style={{ padding: '0 8px' }}>
-            {row.product}
+            {row.product || 'Unknown'}
           </div>
         )}
         
         {visibleColumns.ordersInWindow && (
           <div style={{ padding: '0 8px' }}>
-            <span className={`rate ${levelClass(row.ordersInWindow)}`}>
-              {row.ordersInWindow}
+            <span className={`rate ${levelClass(row.ordersInWindow || 0)}`}>
+              {row.ordersInWindow || 0}
             </span>
           </div>
         )}
         
         {visibleColumns.merchantOrders && (
           <div style={{ padding: '0 8px', color: '#94a3b8' }}>
-            {row.merchantOrders}
+            {row.merchantOrders || 0}
           </div>
         )}
       </div>
