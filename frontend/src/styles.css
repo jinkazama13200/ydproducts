@@ -70,10 +70,111 @@ select{padding:8px 10px}
 .stat{background:linear-gradient(180deg,rgba(8,22,40,.88),rgba(12,31,56,.76));border:1px solid rgba(103,232,249,.1);border-radius:14px;padding:12px;min-height:78px;box-shadow:inset 0 1px 0 rgba(103,232,249,.03)}
 .stat span{display:block;color:var(--muted);font-size:12px;margin-bottom:6px}
 .stat b{font-size:16px;color:#f8fdff;line-height:1.35}
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px}
-.card h3{margin:0 0 10px 0;font-size:18px;color:#f8fafc}
-.row{display:flex;justify-content:space-between;align-items:center;padding:10px 8px;border-bottom:1px dashed rgba(148,163,184,.14);gap:10px;border-radius:8px}
-.row:last-child{border-bottom:none}
+/* Cards grid - responsive with proper minmax for content */
+.grid{
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 16px;
+  align-items: stretch;
+}
+
+/* Ensure cards stretch to fill grid cells */
+.grid .card{
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 200px;
+}
+.card h3{
+  margin: 0 0 12px 0;
+  font-size: 18px;
+  color: #f8fafc;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.card h3 small{
+  color: #64748b;
+  font-weight: 500;
+}
+
+/* Row items inside cards */
+.row{
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 12px;
+  border-bottom: 1px dashed rgba(148,163,184,.14);
+  gap: 12px;
+  border-radius: 8px;
+  transition: background 0.15s ease;
+}
+
+.row:last-child{
+  border-bottom: none;
+}
+
+/* Level row backgrounds */
+.lvl-row.idle{background:var(--idle-bg)}
+.lvl-row.warm{background:var(--warm-bg)}
+.lvl-row.hot{background:var(--hot-bg)}
+.lvl-row.changed,.changed{animation:flashRow .9s ease}
+
+/* Name column in rows */
+.name{
+  display: flex;
+  align-items: center;
+  line-height: 1.2;
+  min-height: 24px;
+  font-weight: 600;
+  color: #e2e8f0;
+  gap: 10px;
+  flex-wrap: wrap;
+  flex: 1;
+  min-width: 0;
+}
+
+/* Rate column in rows */
+.rate{
+  font-weight: 800;
+  min-width: 80px;
+  text-align: right;
+  line-height: 1;
+  font-size: 16px;
+  flex-shrink: 0;
+}
+
+.rate.hot{color:#fca5a5}
+.rate.warm{color:#a5f3fc}
+.rate.idle{color:#cbd5e1}
+
+/* Level chip in cards */
+.level-chip{
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.level-chip.hot{
+  background: rgba(239,68,68,.18);
+  color: #fca5a5;
+}
+
+.level-chip.warm{
+  background: rgba(8,145,178,.18);
+  color: #a5f3fc;
+}
+
+.level-chip.idle{
+  background: rgba(71,85,105,.28);
+  color: #cbd5e1;
+}
 .lvl-row.idle{background:var(--idle-bg)}
 .lvl-row.warm{background:var(--warm-bg)}
 .lvl-row.hot{background:var(--hot-bg)}
@@ -460,8 +561,15 @@ button.primary{
   .stat b{font-size: 14px}
   
   /* Grid - single column, card-only view */
-  .grid{grid-template-columns: 1fr; gap: 10px}
+  .grid{
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
   .card h3{font-size: 16px}
+  .card{padding: 12px}
+  .row{padding: 8px 10px}
+  .rate{font-size: 14px}
+  .name{font-size: 13px}
   
   /* Toolbar - collapsible, stacked layout */
   .toolbar{flex-direction: column; align-items: stretch; gap: 8px}
@@ -522,7 +630,10 @@ button.primary{
   .stats{grid-template-columns: repeat(2, 1fr); gap: 10px}
   
   /* Grid - 2 columns on tablet */
-  .grid{grid-template-columns: repeat(2, 1fr); gap: 12px}
+  .grid{
+    grid-template-columns: repeat(2, 1fr);
+    gap: 14px;
+  }
   
   /* Toolbar - wrap controls */
   .toolbar input{width: 100%}

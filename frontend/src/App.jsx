@@ -1697,70 +1697,78 @@ function AppInner() {
             initial="hidden"
             animate="visible"
           >
-            {merchantEntries.map(([merchant, items, sumOrders], idx) => (
-              <motion.div 
-                className="card fade-in" 
-                key={merchant} 
-                role="article" 
-                aria-label={`Merchant: ${merchant}`}
-                variants={cardVariants}
-                whileHover="hover"
-              >
-                <motion.h3 
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: 0.1 + idx * 0.03 }}
+            {merchantEntries.map(([merchant, items, sumOrders], idx) => {
+              const safeItems = Array.isArray(items) ? items : [];
+              const safeSumOrders = sumOrders || 0;
+              
+              return (
+                <motion.div 
+                  className="card fade-in" 
+                  key={`card-${merchant}`} 
+                  role="article" 
+                  aria-label={`Merchant: ${merchant}`}
+                  variants={cardVariants}
+                  whileHover="hover"
                 >
-                  {idx < 3 ? `🏆 ${merchant}` : merchant} <small style={{color:'#64748b'}}>({sumOrders})</small>
-                </motion.h3>
-                {items.slice(0, 6).map((x, i) => {
-                  const rowKey = `${merchant}|||${x.product}`;
-                  const cls = `row lvl-row ${levelClass(x.ordersInWindow)} ${changedKeys.has(rowKey) ? 'changed' : ''}`;
-                  return (
-                    <motion.div 
-                      className={cls} 
-                      key={rowKey} 
-                      role="listitem" 
-                      style={{ minHeight: '44px', padding: '12px 8px' }}
-                      initial={{ opacity: 0, x: -10 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: 0.2 + idx * 0.03 + i * 0.02 }}
-                      whileHover={{ backgroundColor: 'rgba(103,232,249,0.12)' }}
-                    >
-                      <div className="name" style={{ gap: '10px' }}>
-                        <LevelIcon n={x.ordersInWindow} showLabel={showLevelLabels} style={{ width: '28px', height: '28px', flex: '0 0 28px' }} />
-                        <span style={{ flex: 1 }}>{x.product || 'Unknown product'}</span>
-                        <span className={`level-chip ${levelClass(x.ordersInWindow)}`}>{levelLabel(x.ordersInWindow)}</span>
-                      </div>
-                      <div className="rate" style={{ fontSize: '18px', minWidth: '80px' }}>{x.ordersInWindow || 0}/{safeRateWindow}m</div>
-                    </motion.div>
-                  );
-                })}
-                {/* Merchant sparkline showing 7-day trend */}
-                <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px dashed rgba(148,163,184,0.15)' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                    <span style={{ fontSize: 10, color: '#64748b' }}>7-day trend</span>
-                    <ChangeIndicator value={Math.round((Math.random() - 0.4) * 20)} suffix="%" />
-                  </div>
-                  <WeekTrendChart 
-                    data={items.map(i => i.ordersInWindow)}
-                    width="100%"
-                    height={40}
-                    color={sumOrders >= 10 ? '#fca5a5' : sumOrders >= 3 ? '#a5f3fc' : '#94a3b8'}
-                  />
-                </div>
-                
-                {items.length > 6 && (
-                  <motion.p 
-                    style={{ color: '#94a3b8', marginTop: 8 }}
+                  <motion.h3 
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
+                    transition={{ delay: 0.1 + idx * 0.03 }}
                   >
-                    + {items.length - 6} products khác
-                  </motion.p>
-                )}
-              </motion.div>
-            ))}
+                    {idx < 3 ? `🏆 ${merchant}` : merchant} 
+                    <small>({safeSumOrders})</small>
+                  </motion.h3>
+                  {safeItems.slice(0, 6).map((x, i) => {
+                    const rowKey = `${merchant}|||${x.product || 'unknown'}`;
+                    const ordersVal = x.ordersInWindow || 0;
+                    const cls = `row lvl-row ${levelClass(ordersVal)} ${changedKeys.has(rowKey) ? 'changed' : ''}`;
+                    return (
+                      <motion.div 
+                        className={cls} 
+                        key={rowKey} 
+                        role="listitem"
+                        initial={{ opacity: 0, x: -10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: 0.2 + idx * 0.03 + i * 0.02 }}
+                        whileHover={{ backgroundColor: 'rgba(103,232,249,0.12)' }}
+                      >
+                        <div className="name">
+                          <LevelIcon n={ordersVal} showLabel={showLevelLabels} />
+                          <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            {x.product || 'Unknown product'}
+                          </span>
+                          <span className={`level-chip ${levelClass(ordersVal)}`}>{levelLabel(ordersVal)}</span>
+                        </div>
+                        <div className="rate">{ordersVal}/{safeRateWindow}m</div>
+                      </motion.div>
+                    );
+                  })}
+                  {/* Merchant sparkline showing 7-day trend */}
+                  <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px dashed rgba(148,163,184,0.15)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                      <span style={{ fontSize: 10, color: '#64748b' }}>7-day trend</span>
+                      <ChangeIndicator value={Math.round((Math.random() - 0.4) * 20)} suffix="%" />
+                    </div>
+                    <WeekTrendChart 
+                      data={safeItems.map(i => i.ordersInWindow || 0)}
+                      width="100%"
+                      height={40}
+                      color={safeSumOrders >= 10 ? '#fca5a5' : safeSumOrders >= 3 ? '#a5f3fc' : '#94a3b8'}
+                    />
+                  </div>
+                  
+                  {safeItems.length > 6 && (
+                    <motion.p 
+                      style={{ color: '#94a3b8', marginTop: 8, fontSize: 13 }}
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                    >
+                      + {safeItems.length - 6} products khác
+                    </motion.p>
+                  )}
+                </motion.div>
+              );
+            })}
           </motion.div>
         )}
 
