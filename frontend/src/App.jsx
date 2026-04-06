@@ -369,9 +369,19 @@ export default function App() {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [changedKeys, setChangedKeys] = useState(new Set());
   const [toasts, setToasts] = useState([]);
+  const [hasError, setHasError] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
   const [focusedIndex, setFocusedIndex] = useState(-1);
   const [showLevelLabels, setShowLevelLabels] = useState(false);
   const [toolbarCollapsed, setToolbarCollapsed] = useState(false);
+  
+  // Table state - called at top level, will handle empty data gracefully
+  const tableState = useTableState(flatRows || [], {
+    initialPageSize: 25,
+    pageSizeOptions: [25, 50, 100],
+    initialSortColumn: 'ordersInWindow',
+    initialSortDirection: 'desc'
+  });
   
   const prevMapRef = useRef(new Map());
   const lastActiveRef = useRef(new Map());
@@ -801,9 +811,16 @@ export default function App() {
   };
 
   const saveSettings = () => {
-    localStorage.setItem('webCfg', JSON.stringify(cfg));
-    addToast('💾 Settings saved!', 'success', 2000);
-    setSettingsOpen(false);
+    try {
+      localStorage.setItem('webCfg', JSON.stringify(cfg));
+      addToast('💾 Settings saved!', 'success', 2000);
+      setSettingsOpen(false);
+    } catch (error) {
+      console.error('Save error:', error);
+      setErrorMessage(error.message);
+      setHasError(true);
+      addToast('❌ Save failed: ' + error.message, 'error', 5000);
+    }
   };
 
   const totalOrders5m = merchantEntries.reduce((s, [, , sum]) => s + sum, 0);
@@ -1537,17 +1554,12 @@ export default function App() {
           </motion.p>
         )}
 
-        {/* Table view with EnhancedTable component */}
+        {/* Table view - using EnhancedTable with proper hook ordering */}
         {data && viewMode === 'table' && (
           <EnhancedTable
             rows={flatRows}
             data={flatRows}
-            tableState={useTableState(flatRows, {
-              initialPageSize: 25,
-              pageSizeOptions: [25, 50, 100],
-              initialSortColumn: 'ordersInWindow',
-              initialSortDirection: 'desc'
-            })}
+            tableState={tableState}
             levelFilter={levelFilter}
             query={query}
             sortBy={sortBy}
