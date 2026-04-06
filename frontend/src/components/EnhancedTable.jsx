@@ -68,6 +68,10 @@ export function EnhancedTable({
       <div 
         key={rowKey}
         className={`table-row ${isChanged ? 'changed' : ''} ${isSelected ? 'selected' : ''}`}
+        tabIndex="0"
+        role="row"
+        aria-selected={isSelected}
+        data-row-index={index}
         style={{
           borderBottom: '1px solid rgba(148,163,184,0.08)',
           display: 'grid',
@@ -80,7 +84,14 @@ export function EnhancedTable({
           alignItems: 'center',
           padding: '10px 8px',
           background: isChanged ? 'rgba(59, 130, 246, 0.1)' : 'transparent',
-          transition: 'background 0.3s ease'
+          transition: 'background 0.3s ease',
+          cursor: 'pointer'
+        }}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            toggleRowSelection(rowKey);
+          }
         }}
       >
         {visibleColumns.checkbox && (
@@ -236,6 +247,7 @@ export function EnhancedTable({
                 }
               }}
               style={{ cursor: 'pointer' }}
+              aria-label="Select all rows"
             />
           </div>
         )}
