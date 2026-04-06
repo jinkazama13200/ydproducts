@@ -361,6 +361,10 @@ export default function App() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [tokenVisible, setTokenVisible] = useState(false);
   const [internalKeyVisible, setInternalKeyVisible] = useState(false);
+  const settingsTriggerRef = useRef(null);
+  const modalContentRef = useRef(null);
+  const firstFocusableRef = useRef(null);
+  const lastFocusableRef = useRef(null);
   
   // Other states
   const [showStopped, setShowStopped] = useState(false);
@@ -401,6 +405,82 @@ export default function App() {
     audioRef.current = new Audio(ALERT_SOUND);
     audioRef.current.volume = 0.5;
   }, []);
+
+  // Focus trap for Settings modal
+  useEffect(() => {
+    if (!settingsOpen) return;
+
+    const modalContent = modalContentRef.current;
+    if (!modalContent) return;
+
+    // Store the element that triggered the modal
+    settingsTriggerRef.current = document.activeElement;
+
+    // Find all focusable elements within the modal
+    const focusableSelectors = [
+      'button:not([disabled])',
+      'input:not([disabled])',
+      'select:not([disabled])',
+      'textarea:not([disabled])',
+      'a[href]',
+      '[tabindex]:not([tabindex="-1"])'
+    ];
+    const focusableElements = modalContent.querySelectorAll(focusableSelectors.join(','));
+    
+    if (focusableElements.length > 0) {
+      firstFocusableRef.current = focusableElements[0];
+      lastFocusableRef.current = focusableElements[focusableElements.length - 1];
+      
+      // Focus the first focusable element when modal opens
+      firstFocusableRef.current.focus();
+    }
+
+    // Handle Tab key to trap focus within modal
+    const handleKeyDown = (e) => {
+      if (e.key !== 'Tab') return;
+
+      const focusable = modalContent.querySelectorAll(focusableSelectors.join(','));
+      if (focusable.length === 0) return;
+
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+
+      if (e.shiftKey) {
+        // Shift + Tab: if on first element, go to last
+        if (document.activeElement === first) {
+          e.preventDefault();
+          last.focus();
+        }
+      } else {
+        // Tab: if on last element, go to first
+        if (document.activeElement === last) {
+          e.preventDefault();
+          first.focus();
+        }
+      }
+    };
+
+    // Also handle Escape to close modal
+    const handleEscape = (e) => {
+      if (e.key === 'Escape') {
+        setSettingsOpen(false);
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    document.addEventListener('keydown', handleEscape);
+
+    // Cleanup: restore focus when modal closes
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+      document.removeEventListener('keydown', handleEscape);
+      
+      // Restore focus to the trigger element
+      if (settingsTriggerRef.current) {
+        settingsTriggerRef.current.focus();
+      }
+    };
+  }, [settingsOpen]);
 
   // Toast notification helper
   const addToast = useCallback((message, type = 'info', duration = 4000) => {
@@ -892,6 +972,7 @@ export default function App() {
           >
             <motion.div 
               className="modal-content" 
+              ref={modalContentRef}
               onClick={e => e.stopPropagation()}
               variants={modalVariants}
               initial="hidden"
@@ -1042,6 +1123,7 @@ export default function App() {
               ⬇ CSV
             </motion.button>
             <motion.button 
+              ref={settingsTriggerRef}
               onClick={() => setSettingsOpen(true)} 
               aria-label="Open settings"
               variants={buttonVariants}
