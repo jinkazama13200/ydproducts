@@ -117,10 +117,17 @@ export function EnhancedTable({
         key={rowKey}
         ref={el => rowRefs.current[rowKey] = el}
         className={`table-row ${isChanged ? 'changed' : ''} ${isSelected ? 'selected' : ''}`}
+<<<<<<< HEAD
         tabIndex={0}
         role="row"
         aria-selected={isSelected}
         onClick={() => setFocusedRowIndex(index)}
+=======
+        tabIndex="0"
+        role="row"
+        aria-selected={isSelected}
+        data-row-index={index}
+>>>>>>> clawteam/yd-critical-fix/sanji
         style={{
           borderBottom: '1px solid rgba(148,163,184,0.08)',
           display: 'grid',
@@ -132,6 +139,7 @@ export function EnhancedTable({
                              visibleColumns.merchantOrders ? '120px' : '0px',
           alignItems: 'center',
           padding: '10px 8px',
+<<<<<<< HEAD
           background: isFocused 
             ? 'rgba(59, 130, 246, 0.2)' 
             : isChanged 
@@ -141,6 +149,17 @@ export function EnhancedTable({
           outline: isFocused ? '2px solid #3b82f6' : 'none',
           outlineOffset: '-2px',
           cursor: 'pointer'
+=======
+          background: isChanged ? 'rgba(59, 130, 246, 0.1)' : 'transparent',
+          transition: 'background 0.3s ease',
+          cursor: 'pointer'
+        }}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            toggleRowSelection(rowKey);
+          }
+>>>>>>> clawteam/yd-critical-fix/sanji
         }}
       >
         {visibleColumns.checkbox && (
@@ -296,6 +315,7 @@ export function EnhancedTable({
                 }
               }}
               style={{ cursor: 'pointer' }}
+              aria-label="Select all rows"
             />
           </div>
         )}

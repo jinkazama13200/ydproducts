@@ -163,6 +163,208 @@ kbd{background:rgba(103,232,249,.15);border:1px solid rgba(103,232,249,.3);borde
 }
 
 /* ============================================
+   FOCUS VISIBILITY - Accessibility
+   ============================================ */
+
+/* Global focus reset - remove default outlines */
+*:focus{outline:none}
+
+/* Consistent focus ring style for all interactive elements */
+*:focus-visible{
+  outline:3px solid #67e8f9;
+  outline-offset:2px;
+  box-shadow:0 0 0 4px rgba(103,232,249,0.25);
+}
+
+/* Buttons - enhanced focus */
+button:focus-visible{
+  outline:3px solid #67e8f9;
+  outline-offset:3px;
+  box-shadow:0 0 0 5px rgba(103,232,249,0.35);
+}
+
+/* Modal close button focus */
+.modal-close:focus-visible{
+  outline:3px solid #67e8f9;
+  outline-offset:2px;
+  box-shadow:0 0 0 4px rgba(103,232,249,0.35);
+}
+
+/* Input fields focus */
+input:focus-visible{
+  outline:3px solid #67e8f9;
+  outline-offset:2px;
+  box-shadow:0 0 0 4px rgba(103,232,249,0.3);
+  border-color:#67e8f9;
+}
+
+/* Select dropdowns focus */
+select:focus-visible{
+  outline:3px solid #67e8f9;
+  outline-offset:2px;
+  box-shadow:0 0 0 4px rgba(103,232,249,0.3);
+  border-color:#67e8f9;
+}
+
+/* Checkboxes focus */
+input[type="checkbox"]:focus-visible{
+  outline:3px solid #67e8f9;
+  outline-offset:2px;
+  box-shadow:0 0 0 4px rgba(103,232,249,0.35);
+  border-color:#67e8f9;
+}
+
+/* Links focus */
+a:focus-visible{
+  outline:3px solid #67e8f9;
+  outline-offset:2px;
+  box-shadow:0 0 0 4px rgba(103,232,249,0.25);
+}
+
+/* Table rows focus - for keyboard navigation */
+tbody tr:focus-visible{
+  outline:3px solid #67e8f9;
+  outline-offset:-2px;
+  background:rgba(103,232,249,0.15);
+  box-shadow:0 0 0 3px rgba(103,232,249,0.4);
+}
+
+/* Table row focused state (JS-controlled) */
+tbody tr.focused{
+  outline:3px solid #67e8f9;
+  outline-offset:-2px;
+  background:rgba(103,232,249,0.15);
+  box-shadow:0 0 0 3px rgba(103,232,249,0.5);
+}
+
+/* Enhanced table rows focus */
+.table-row:focus-visible{
+  outline:3px solid #67e8f9;
+  outline-offset:-2px;
+  background:rgba(103,232,249,0.12);
+  box-shadow:0 0 0 3px rgba(103,232,249,0.4);
+}
+
+/* Search history items focus */
+.search-history-item:focus-visible{
+  outline:3px solid #67e8f9;
+  outline-offset:-2px;
+  background:rgba(103,232,249,0.15);
+  box-shadow:0 0 0 3px rgba(103,232,249,0.35);
+}
+
+/* Alert chips focus */
+.alert-chip:focus-visible{
+  outline:3px solid #67e8f9;
+  outline-offset:2px;
+  box-shadow:0 0 0 4px rgba(103,232,249,0.3);
+}
+
+/* Stopped tags focus */
+.stopped-tag:focus-visible{
+  outline:3px solid #67e8f9;
+  outline-offset:2px;
+  box-shadow:0 0 0 4px rgba(103,232,249,0.3);
+}
+
+/* Health status badge focus */
+.health:focus-visible{
+  outline:3px solid #67e8f9;
+  outline-offset:2px;
+  box-shadow:0 0 0 4px rgba(103,232,249,0.3);
+}
+
+/* Pagination buttons focus */
+button[disabled]:focus-visible{
+  outline:3px solid #67e8f9;
+  outline-offset:2px;
+  box-shadow:0 0 0 4px rgba(103,232,249,0.25);
+}
+
+/* KPI cards focus (for keyboard navigation) */
+.kpi-card:focus-visible{
+  outline:3px solid #67e8f9;
+  outline-offset:3px;
+  box-shadow:0 0 0 5px rgba(103,232,249,0.3);
+}
+
+/* Stat cards focus */
+.stat:focus-visible{
+  outline:3px solid #67e8f9;
+  outline-offset:3px;
+  box-shadow:0 0 0 5px rgba(103,232,249,0.25);
+}
+
+/* Level indicators focus */
+.level-indicator:focus-visible{
+  outline:3px solid #67e8f9;
+  outline-offset:2px;
+  box-shadow:0 0 0 4px rgba(103,232,249,0.35);
+}
+
+/* Modal content focus trap indicator */
+.modal-content:focus-within{
+  box-shadow:0 0 0 4px rgba(103,232,249,0.2);
+}
+
+/* Toast container focus for screen readers */
+.toast-container:focus-within{
+  box-shadow:0 0 0 4px rgba(103,232,249,0.15);
+}
+
+/* Skip link for keyboard users (hidden by default, shown on focus) */
+.skip-link{
+  position:absolute;
+  top:-40px;
+  left:0;
+  background:#0891b2;
+  color:#fff;
+  padding:12px 16px;
+  z-index:9999;
+  transition:top 0.2s ease;
+  font-weight:700;
+  border-radius:0 0 8px 0;
+}
+.skip-link:focus-visible{
+  top:0;
+  outline:3px solid #67e8f9;
+  outline-offset:0;
+  box-shadow:0 4px 12px rgba(0,0,0,0.4);
+}
+
+/* Focus visible in dark mode - ensure high contrast */
+@media(prefers-color-scheme:dark){
+  *:focus-visible{
+    outline:3px solid #67e8f9;
+    outline-offset:2px;
+    box-shadow:0 0 0 4px rgba(103,232,249,0.35);
+  }
+  button:focus-visible{
+    outline:3px solid #67e8f9;
+    outline-offset:3px;
+    box-shadow:0 0 0 5px rgba(103,232,249,0.45);
+  }
+  input:focus-visible,select:focus-visible{
+    outline:3px solid #67e8f9;
+    outline-offset:2px;
+    box-shadow:0 0 0 4px rgba(103,232,249,0.4);
+  }
+  tbody tr:focus-visible{
+    outline:3px solid #67e8f9;
+    outline-offset:-2px;
+    background:rgba(103,232,249,0.18);
+    box-shadow:0 0 0 3px rgba(103,232,249,0.5);
+  }
+}
+
+/* Reduced motion preference - keep focus indicators but reduce animations */
+@media(prefers-reduced-motion:reduce){
+  *:focus-visible{
+    transition:none;
+  }
+}
+
+/* ============================================
    SKELETON LOADING ANIMATIONS
    ============================================ */
 .skeleton{
