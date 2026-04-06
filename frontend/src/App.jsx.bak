@@ -294,8 +294,7 @@ function Skeleton({ width = '100%', height = '20px', className = '' }) {
   );
 }
 
-// Main App component (wrapped with ErrorBoundary in main.jsx)
-function AppInner() {
+export default function App() {
   const [data, setData] = useState(null);
   const [meta, setMeta] = useState({});
   const [loading, setLoading] = useState(true);
@@ -379,6 +378,14 @@ function AppInner() {
   const [focusedIndex, setFocusedIndex] = useState(-1);
   const [showLevelLabels, setShowLevelLabels] = useState(false);
   const [toolbarCollapsed, setToolbarCollapsed] = useState(false);
+  
+  // Table state - called at top level, will handle empty data gracefully
+  const tableState = useTableState(flatRows || [], {
+    initialPageSize: 25,
+    pageSizeOptions: [25, 50, 100],
+    initialSortColumn: 'ordersInWindow',
+    initialSortDirection: 'desc'
+  });
   
   const prevMapRef = useRef(new Map());
   const lastActiveRef = useRef(new Map());
@@ -536,17 +543,17 @@ function AppInner() {
       let hasHotProduct = false;
       let significantChanges = [];
 
-      for (const [merchant, items] of Object.entries(payload?.data || {})) {
+      for (const [merchant, items] of Object.entries(payload.data || {})) {
         const list = Array.isArray(items) ? items : [];
         for (const item of list) {
-          const key = `${merchant}|||${item?.product || ''}`;
-          const orders = Number(item?.ordersInWindow || 0);
+          const key = `${merchant}|||${item.product}`;
+          const orders = Number(item.ordersInWindow || 0);
           newOrders.set(key, orders);
           
           const prev = prevOrders.get(key);
           if (prev !== undefined && orders >= 10 && (prev < 10 || orders - prev >= 5)) {
             hasHotProduct = true;
-            significantChanges.push({ merchant, product: item?.product || 'Unknown', orders, prev: prev || 0 });
+            significantChanges.push({ merchant, product: item.product, orders, prev: prev || 0 });
           }
         }
       }
@@ -626,8 +633,8 @@ function AppInner() {
     for (const [merchant, items] of Object.entries(safeData)) {
       const list = Array.isArray(items) ? items : [];
       for (const item of list) {
-        const key = `${merchant}|||${item?.product || ''}`;
-        const n = Number(item?.ordersInWindow || 0);
+        const key = `${merchant}|||${item.product}`;
+        const n = Number(item.ordersInWindow || 0);
         if (n > 0) lastActiveRef.current.set(key, now);
       }
     }
@@ -638,15 +645,15 @@ function AppInner() {
     return Object.entries(safeData)
       .map(([merchant, items]) => {
         const list = Array.isArray(items) ? items : [];
-        const normalized = list.map((x) => ({ ...x, ordersInWindow: Number(x?.ordersInWindow || 0) }));
+        const normalized = list.map((x) => ({ ...x, ordersInWindow: Number(x.ordersInWindow || 0) }));
         const activeItems = normalized.filter((x) => {
-          const key = `${merchant}|||${x?.product || ''}`;
-          if ((x?.ordersInWindow || 0) > 0) return true;
+          const key = `${merchant}|||${x.product}`;
+          if (x.ordersInWindow > 0) return true;
           const lastActive = lastActiveRef.current.get(key);
           if (!lastActive) return false;
           return (now - lastActive) < INACTIVE_MS;
         });
-        const sumOrders = activeItems.reduce((s, x) => s + (x?.ordersInWindow || 0), 0);
+        const sumOrders = activeItems.reduce((s, x) => s + x.ordersInWindow, 0);
         const allInactive = activeItems.length === 0;
         return [merchant, activeItems, sumOrders, allInactive, normalized.length];
       });
@@ -667,13 +674,13 @@ function AppInner() {
         const filteredItems = items.filter((x) => {
           const q = query.trim().toLowerCase();
           const m = merchantFilter.trim().toLowerCase();
-          const queryHit = !q || merchant.toLowerCase().includes(q) || (x?.product || '').toLowerCase().includes(q);
+          const queryHit = !q || merchant.toLowerCase().includes(q) || x.product.toLowerCase().includes(q);
           const merchantHit = !m || merchant.toLowerCase().includes(m);
-          const levelHit = levelFilter === 'all' || levelClass(x?.ordersInWindow || 0) === levelFilter;
-          const ordersHit = (x?.ordersInWindow || 0) >= minOrders;
+          const levelHit = levelFilter === 'all' || levelClass(x.ordersInWindow) === levelFilter;
+          const ordersHit = x.ordersInWindow >= minOrders;
           return queryHit && merchantHit && levelHit && ordersHit;
         });
-        const nextSumOrders = filteredItems.reduce((s, x) => s + (x?.ordersInWindow || 0), 0);
+        const nextSumOrders = filteredItems.reduce((s, x) => s + x.ordersInWindow, 0);
         return [merchant, filteredItems, nextSumOrders, inactive, totalProducts];
       })
       .filter(([merchant, items, sumOrders]) => {
@@ -700,24 +707,16 @@ function AppInner() {
           merchant,
           merchantOrders: sumOrders,
           ...item,
-          level: levelClass(item?.ordersInWindow || 0)
+          level: levelClass(item.ordersInWindow)
         });
       }
     }
     return rows.sort((a, b) => {
-      if (sortBy === 'name') return (a?.merchant || '').localeCompare(b?.merchant || '') || (a?.product || '').localeCompare(b?.product || '');
-      if (sortBy === 'products') return (b?.merchantOrders || 0) - (a?.merchantOrders || 0) || (b?.ordersInWindow || 0) - (a?.ordersInWindow || 0);
-      return (b?.ordersInWindow || 0) - (a?.ordersInWindow || 0) || (b?.merchantOrders || 0) - (a?.merchantOrders || 0);
+      if (sortBy === 'name') return a.merchant.localeCompare(b.merchant) || a.product.localeCompare(b.product);
+      if (sortBy === 'products') return b.merchantOrders - a.merchantOrders || b.ordersInWindow - a.ordersInWindow;
+      return b.ordersInWindow - a.ordersInWindow || b.merchantOrders - a.merchantOrders;
     });
   }, [merchantEntries, sortBy]);
-
-  // Table state - must be after flatRows is defined
-  const tableState = useTableState(flatRows || [], {
-    initialPageSize: 25,
-    pageSizeOptions: [25, 50, 100],
-    initialSortColumn: 'ordersInWindow',
-    initialSortDirection: 'desc'
-  });
 
   useEffect(() => {
     rowsRef.current = flatRows;
@@ -727,10 +726,10 @@ function AppInner() {
     const next = new Map();
     const changed = new Set();
     for (const row of flatRows) {
-      const key = `${row?.merchant || ''}|||${row?.product || ''}`;
+      const key = `${row.merchant}|||${row.product}`;
       const prev = prevMapRef.current.get(key);
-      next.set(key, row?.ordersInWindow || 0);
-      if (prev !== undefined && prev !== (row?.ordersInWindow || 0)) changed.add(key);
+      next.set(key, row.ordersInWindow);
+      if (prev !== undefined && prev !== row.ordersInWindow) changed.add(key);
     }
     prevMapRef.current = next;
     setChangedKeys(changed);
@@ -877,49 +876,23 @@ function AppInner() {
   }, [focusedIndex, fetchData, addToast, clearAllFilters]);
 
   const exportCsv = () => {
-    try {
-      if (!flatRows || flatRows.length === 0) {
-        addToast('⚠️ No data to export', 'warning', 2000);
-        return;
-      }
-      const rows = [['merchant', 'product', 'orders', 'level']];
-      const rateWin = data?.rateWindowMinutes || 5;
-      
-      for (const item of flatRows) {
-        rows.push([
-          item?.merchant || 'Unknown', 
-          item?.product || 'Unknown', 
-          String(item?.ordersInWindow || 0), 
-          levelLabel(item?.ordersInWindow || 0)
-        ]);
-      }
-      const csv = rows.map(r => r.map(v => '"' + String(v).replace(/"/g, '""') + '"').join(',')).join('\n');
-      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'yida-products-' + new Date().toISOString().replace(/[:.]/g, '-') + '.csv';
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-      addToast('⬇ CSV exported!', 'success', 2000);
-    } catch (error) {
-      console.error('Export CSV error:', error);
-      addToast('❌ Export failed: ' + (error?.message || 'Unknown error'), 'error', 5000);
-    }
+    if (!flatRows.length) return;
+    const rows = [['merchant', 'product', `orders_${data?.rateWindowMinutes || 5}m`, 'level']];
+    for (const item of flatRows) rows.push([item.merchant, item.product, String(item.ordersInWindow), levelLabel(item.ordersInWindow)]);
+    const csv = rows.map(r => r.map(v => `"${String(v).replaceAll('"', '""')}"`).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `yida-products-${new Date().toISOString().replace(/[:.]/g, '-')}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    addToast('⬇ CSV exported!', 'success', 2000);
   };
 
   const saveSettings = () => {
     try {
-      // Validate cfg before saving
-      const cfgToSave = {
-        token: cfg.token?.trim() || '',
-        internalKey: cfg.internalKey?.trim() || '',
-        soundEnabled: Boolean(cfg.soundEnabled),
-        toastEnabled: Boolean(cfg.toastEnabled)
-      };
-      localStorage.setItem('webCfg', JSON.stringify(cfgToSave));
+      localStorage.setItem('webCfg', JSON.stringify(cfg));
       addToast('💾 Settings saved!', 'success', 2000);
       setSettingsOpen(false);
     } catch (error) {
@@ -930,14 +903,14 @@ function AppInner() {
     }
   };
 
-  const totalOrders5m = merchantEntries?.reduce((s, [, , sum]) => s + (sum || 0), 0) || 0;
-  const activeProducts = flatRows?.length || 0;
-  const hotCount = flatRows?.filter(x => (x?.ordersInWindow || 0) >= 10).length || 0;
-  const warmCount = flatRows?.filter(x => (x?.ordersInWindow || 0) >= 3 && (x?.ordersInWindow || 0) < 10).length || 0;
-  const changedRows = flatRows?.filter((row) => changedKeys.has(`${row?.merchant || ''}|||${row?.product || ''}`)) || [];
+  const totalOrders5m = merchantEntries.reduce((s, [, , sum]) => s + sum, 0);
+  const activeProducts = flatRows.length;
+  const hotCount = flatRows.filter(x => x.ordersInWindow >= 10).length;
+  const warmCount = flatRows.filter(x => x.ordersInWindow >= 3 && x.ordersInWindow < 10).length;
+  const changedRows = flatRows.filter((row) => changedKeys.has(`${row.merchant}|||${row.product}`));
   const topAlerts = changedRows
     .slice()
-    .sort((a, b) => (b?.ordersInWindow || 0) - (a?.ordersInWindow || 0))
+    .sort((a, b) => b.ordersInWindow - a.ordersInWindow)
     .slice(0, 4);
 
   const toggleFullscreen = () => {
@@ -955,13 +928,9 @@ function AppInner() {
   }, []);
 
   const hottestMerchant = merchantEntries[0]?.[0] || '-';
-  const hottestProduct = flatRows.length > 0 ? flatRows[0] : { merchant: '-', product: '-', ordersInWindow: 0 };
+  const hottestProduct = flatRows[0] || { merchant: '-', product: '-', ordersInWindow: 0 };
   const freshnessSec = lastOkAt ? Math.max(0, Math.floor((Date.now() - new Date(lastOkAt).getTime()) / 1000)) : null;
   const partialData = Boolean(meta?.statTruncated || meta?.payOrderTruncated);
-  
-  // Safe data access helpers with null checks
-  const safeRateWindow = data?.rateWindowMinutes || 5;
-  const hasData = data && Object.keys(data?.data || {}).length > 0;
 
   return (
     <>
@@ -1081,8 +1050,6 @@ function AppInner() {
       
       <motion.div 
         className="wrap"
-        id="main-content"
-        tabIndex="-1"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.5 }}
@@ -1188,10 +1155,10 @@ function AppInner() {
           animate="visible"
         >
           {[
-            { label: `📊 Orders / ${safeRateWindow}m`, value: totalOrders5m || 0, desc: 'Total live flow trong cửa sổ hiện tại', primary: true, trend: totalOrders5m, change: 5.2 },
-            { label: '🏢 Active merchants', value: merchantEntries?.length || 0, desc: 'Merchant còn hoạt động gần đây', trend: merchantEntries?.length, change: -2.1 },
-            { label: '🧩 Active products', value: activeProducts || 0, desc: 'Sản phẩm đang có movement', trend: activeProducts, change: 3.8 },
-            { label: '🔥 Hot / Warm', value: `${hotCount || 0} / ${warmCount || 0}`, desc: 'Hot & warm pairs đang chạy', trend: (hotCount || 0) + (warmCount || 0), change: 1.5 },
+            { label: `📊 Orders / ${data?.rateWindowMinutes || 5}m`, value: totalOrders5m, desc: 'Total live flow trong cửa sổ hiện tại', primary: true, trend: totalOrders5m, change: 5.2 },
+            { label: '🏢 Active merchants', value: merchantEntries.length, desc: 'Merchant còn hoạt động gần đây', trend: merchantEntries.length, change: -2.1 },
+            { label: '🧩 Active products', value: activeProducts, desc: 'Sản phẩm đang có movement', trend: activeProducts, change: 3.8 },
+            { label: '🔥 Hot / Warm', value: `${hotCount} / ${warmCount}`, desc: 'Hot & warm pairs đang chạy', trend: hotCount + warmCount, change: 1.5 },
             { label: '🕒 Freshness', value: freshnessSec === null ? '-' : `${freshnessSec}s`, desc: freshnessSec === null ? 'Chưa sync' : 'Từ lần sync thành công gần nhất', accent: true }
           ].map((kpi, i) => (
             <motion.div 
@@ -1265,24 +1232,21 @@ function AppInner() {
                 initial="hidden"
                 animate="visible"
               >
-                {topAlerts.map((row, idx) => {
-                  const alertKey = `${row.merchant}|||${row.product}|||${idx}`;
-                  return (
-                    <motion.div 
-                      className={`alert-chip ${row.level}`} 
-                      key={alertKey} 
-                      role="status"
-                      initial={{ opacity: 0, scale: 0.8 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      whileHover={{ scale: 1.05 }}
-                      transition={{ type: 'spring', stiffness: 400 }}
-                    >
-                      <strong>{row.merchant || 'Unknown'}</strong>
-                      <span>{row.product || 'Unknown'}</span>
-                      <b>{row.ordersInWindow || 0}/{safeRateWindow}m</b>
-                    </motion.div>
-                  );
-                })}
+                {topAlerts.map((row) => (
+                  <motion.div 
+                    className={`alert-chip ${row.level}`} 
+                    key={`${row.merchant}|||${row.product}`} 
+                    role="status"
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    whileHover={{ scale: 1.05 }}
+                    transition={{ type: 'spring', stiffness: 400 }}
+                  >
+                    <strong>{row.merchant}</strong>
+                    <span>{row.product}</span>
+                    <b>{row.ordersInWindow}/{data.rateWindowMinutes}m</b>
+                  </motion.div>
+                ))}
               </motion.div>
             </motion.div>
           )}
@@ -1376,7 +1340,7 @@ function AppInner() {
                     <div className="search-history-header">Recent Searches</div>
                     {searchHistory.map((term, i) => (
                       <motion.div 
-                        key={`search-${term}-${i}`} 
+                        key={i} 
                         className="search-history-item"
                         onClick={() => { setQuery(term); setShowSearchHistory(false); }}
                         role="option"
@@ -1509,7 +1473,7 @@ function AppInner() {
                         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 8 }}>
                           {filterPresets.map((preset, i) => (
                             <motion.button 
-                              key={`filter-${preset.name}-${i}`}
+                              key={i}
                               onClick={() => loadPreset(preset)}
                               style={{ padding: '6px 12px', minWidth: 'auto', fontSize: 12 }}
                               variants={buttonVariants}
@@ -1520,7 +1484,7 @@ function AppInner() {
                             </motion.button>
                           ))}
                           {userPresets.map((preset, i) => (
-                            <motion.div key={`user-preset-${preset.name}-${i}`} style={{ display: 'flex', gap: 4, alignItems: 'center' }} variants={itemVariants}>
+                            <motion.div key={i} style={{ display: 'flex', gap: 4, alignItems: 'center' }} variants={itemVariants}>
                               <motion.button 
                                 onClick={() => loadPreset(preset)}
                                 style={{ padding: '6px 12px', minWidth: 'auto', fontSize: 12 }}
@@ -1681,7 +1645,7 @@ function AppInner() {
             levelFilter={levelFilter}
             query={query}
             sortBy={sortBy}
-            rateWindowMinutes={data?.rateWindowMinutes || 5}
+            rateWindowMinutes={data.rateWindowMinutes}
             changedKeys={changedKeys}
             LevelIcon={LevelIcon}
             levelClass={levelClass}
@@ -1699,78 +1663,70 @@ function AppInner() {
             initial="hidden"
             animate="visible"
           >
-            {merchantEntries.map(([merchant, items, sumOrders], idx) => {
-              const safeItems = Array.isArray(items) ? items : [];
-              const safeSumOrders = sumOrders || 0;
-              
-              return (
-                <motion.div 
-                  className="card fade-in" 
-                  key={`card-${merchant}`} 
-                  role="article" 
-                  aria-label={`Merchant: ${merchant}`}
-                  variants={cardVariants}
-                  whileHover="hover"
+            {merchantEntries.map(([merchant, items, sumOrders], idx) => (
+              <motion.div 
+                className="card fade-in" 
+                key={merchant} 
+                role="article" 
+                aria-label={`Merchant: ${merchant}`}
+                variants={cardVariants}
+                whileHover="hover"
+              >
+                <motion.h3 
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.1 + idx * 0.03 }}
                 >
-                  <motion.h3 
+                  {idx < 3 ? `🏆 ${merchant}` : merchant} <small style={{color:'#64748b'}}>({sumOrders})</small>
+                </motion.h3>
+                {items.slice(0, 6).map((x, i) => {
+                  const rowKey = `${merchant}|||${x.product}`;
+                  const cls = `row lvl-row ${levelClass(x.ordersInWindow)} ${changedKeys.has(rowKey) ? 'changed' : ''}`;
+                  return (
+                    <motion.div 
+                      className={cls} 
+                      key={i} 
+                      role="listitem" 
+                      style={{ minHeight: '44px', padding: '12px 8px' }}
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.2 + idx * 0.03 + i * 0.02 }}
+                      whileHover={{ backgroundColor: 'rgba(103,232,249,0.12)' }}
+                    >
+                      <div className="name" style={{ gap: '10px' }}>
+                        <LevelIcon n={x.ordersInWindow} showLabel={showLevelLabels} style={{ width: '28px', height: '28px', flex: '0 0 28px' }} />
+                        <span style={{ flex: 1 }}>{x.product}</span>
+                        <span className={`level-chip ${levelClass(x.ordersInWindow)}`}>{levelLabel(x.ordersInWindow)}</span>
+                      </div>
+                      <div className="rate" style={{ fontSize: '18px', minWidth: '80px' }}>{x.ordersInWindow}/{data.rateWindowMinutes}m</div>
+                    </motion.div>
+                  );
+                })}
+                {/* Merchant sparkline showing 7-day trend */}
+                <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px dashed rgba(148,163,184,0.15)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                    <span style={{ fontSize: 10, color: '#64748b' }}>7-day trend</span>
+                    <ChangeIndicator value={Math.round((Math.random() - 0.4) * 20)} suffix="%" />
+                  </div>
+                  <WeekTrendChart 
+                    data={items.map(i => i.ordersInWindow)}
+                    width="100%"
+                    height={40}
+                    color={sumOrders >= 10 ? '#fca5a5' : sumOrders >= 3 ? '#a5f3fc' : '#94a3b8'}
+                  />
+                </div>
+                
+                {items.length > 6 && (
+                  <motion.p 
+                    style={{ color: '#94a3b8', marginTop: 8 }}
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
-                    transition={{ delay: 0.1 + idx * 0.03 }}
                   >
-                    {idx < 3 ? `🏆 ${merchant}` : merchant} 
-                    <small>({safeSumOrders})</small>
-                  </motion.h3>
-                  {safeItems.slice(0, 6).map((x, i) => {
-                    const rowKey = `${merchant}|||${x.product || 'unknown'}`;
-                    const ordersVal = x.ordersInWindow || 0;
-                    const cls = `row lvl-row ${levelClass(ordersVal)} ${changedKeys.has(rowKey) ? 'changed' : ''}`;
-                    return (
-                      <motion.div 
-                        className={cls} 
-                        key={rowKey} 
-                        role="listitem"
-                        initial={{ opacity: 0, x: -10 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: 0.2 + idx * 0.03 + i * 0.02 }}
-                        whileHover={{ backgroundColor: 'rgba(103,232,249,0.12)' }}
-                      >
-                        <div className="name">
-                          <LevelIcon n={ordersVal} showLabel={showLevelLabels} />
-                          <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                            {x.product || 'Unknown product'}
-                          </span>
-                          <span className={`level-chip ${levelClass(ordersVal)}`}>{levelLabel(ordersVal)}</span>
-                        </div>
-                        <div className="rate">{ordersVal}/{safeRateWindow}m</div>
-                      </motion.div>
-                    );
-                  })}
-                  {/* Merchant sparkline showing 7-day trend */}
-                  <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px dashed rgba(148,163,184,0.15)' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                      <span style={{ fontSize: 10, color: '#64748b' }}>7-day trend</span>
-                      <ChangeIndicator value={Math.round((Math.random() - 0.4) * 20)} suffix="%" />
-                    </div>
-                    <WeekTrendChart 
-                      data={safeItems.map(i => i.ordersInWindow || 0)}
-                      width="100%"
-                      height={40}
-                      color={safeSumOrders >= 10 ? '#fca5a5' : safeSumOrders >= 3 ? '#a5f3fc' : '#94a3b8'}
-                    />
-                  </div>
-                  
-                  {safeItems.length > 6 && (
-                    <motion.p 
-                      style={{ color: '#94a3b8', marginTop: 8, fontSize: 13 }}
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                    >
-                      + {safeItems.length - 6} products khác
-                    </motion.p>
-                  )}
-                </motion.div>
-              );
-            })}
+                    + {items.length - 6} products khác
+                  </motion.p>
+                )}
+              </motion.div>
+            ))}
           </motion.div>
         )}
 
@@ -1831,6 +1787,3 @@ function AppInner() {
     </>
   );
 }
-
-// Export AppInner as default (ErrorBoundary already wraps in main.jsx)
-export default AppInner;

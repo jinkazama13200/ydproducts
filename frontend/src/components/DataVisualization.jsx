@@ -108,8 +108,10 @@ export function KPITrendCard({ title, value, trendData, change, subtitle, color 
  * Merchant Activity Heatmap
  */
 export function ActivityHeatmap({ data, width = '100%', height = 200 }) {
+  const safeData = Array.isArray(data) ? data : [];
+  const flattened = safeData.flat().filter(v => v !== undefined && v !== null);
+  const maxValue = flattened.length > 0 ? Math.max(...flattened, 1) : 1;
   const hours = Array.from({ length: 24 }, (_, i) => i);
-  const maxValue = Math.max(...data.flat(), 1);
 
   const getColor = (value) => {
     if (value === 0) return 'rgba(30, 41, 59, 0.5)';
@@ -152,11 +154,11 @@ export function ActivityHeatmap({ data, width = '100%', height = 200 }) {
             style={{
               gridColumn: 2,
               gridRow: hour + 1,
-              background: getColor(data[hour]?.[0] || 0),
+              background: getColor(safeData[hour]?.[0] || 0),
               borderRadius: 2,
               transition: 'background 0.3s ease'
             }}
-            title={`${hour}:00 - ${data[hour]?.[0] || 0} orders`}
+            title={`${hour}:00 - ${safeData[hour]?.[0] || 0} orders`}
           />
         ))}
       </div>
