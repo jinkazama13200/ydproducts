@@ -876,40 +876,43 @@ export default function App() {
   }, [focusedIndex, fetchData, addToast, clearAllFilters]);
 
   const exportCsv = () => {
+    if (!flatRows || flatRows.length === 0) {
+      addToast('⚠️ No data to export', 'warning', 2000);
+      return;
+    }
     try {
-      if (!flatRows || flatRows.length === 0) {
-        addToast('⚠️ No data to export', 'warning', 2000);
-        return;
-      }
-      const rows = [['merchant', 'product', 'orders', 'level']];
-      const rateWin = data?.rateWindowMinutes || 5;
-      
+      const rows = [['merchant', 'product', `orders_${safeRateWindow}m`, 'level']];
       for (const item of flatRows) {
-        rows.push([
-          item?.merchant || 'Unknown', 
-          item?.product || 'Unknown', 
-          String(item?.ordersInWindow || 0), 
-          levelLabel(item?.ordersInWindow || 0)
-        ]);
+        if (!item.merchant || !item.product) continue;
+        rows.push([item.merchant, item.product, String(item.ordersInWindow || 0), levelLabel(item.ordersInWindow)]);
       }
-      const csv = rows.map(r => r.map(v => '"' + String(v).replace(/"/g, '""') + '"').join(',')).join('\n');
+      const csv = rows.map(r => r.map(v => `"${String(v).replaceAll('"', '""')}"`).join(',')).join('\n');
       const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = 'yida-products-' + new Date().toISOString().replace(/[:.]/g, '-') + '.csv';
+      a.download = `yida-products-${new Date().toISOString().replace(/[:.]/g, '-')}.csv`;
+      document.body.appendChild(a);
       a.click();
+      document.body.removeChild(a);
       URL.revokeObjectURL(url);
       addToast('⬇ CSV exported!', 'success', 2000);
-    } catch (e) {
-      console.error('Export error:', e);
-      addToast('❌ Export failed: ' + (e?.message || 'Unknown error'), 'error', 5000);
+    } catch (error) {
+      console.error('Export CSV error:', error);
+      addToast('❌ Export failed: ' + error.message, 'error', 5000);
     }
   };
 
   const saveSettings = () => {
     try {
-      localStorage.setItem('webCfg', JSON.stringify(cfg));
+      // Validate cfg before saving
+      const cfgToSave = {
+        token: cfg.token?.trim() || '',
+        internalKey: cfg.internalKey?.trim() || '',
+        soundEnabled: Boolean(cfg.soundEnabled),
+        toastEnabled: Boolean(cfg.toastEnabled)
+      };
+      localStorage.setItem('webCfg', JSON.stringify(cfgToSave));
       addToast('💾 Settings saved!', 'success', 2000);
       setSettingsOpen(false);
     } catch (error) {
@@ -945,9 +948,13 @@ export default function App() {
   }, []);
 
   const hottestMerchant = merchantEntries[0]?.[0] || '-';
-  const hottestProduct = flatRows[0] || { merchant: '-', product: '-', ordersInWindow: 0 };
+  const hottestProduct = flatRows.length > 0 ? flatRows[0] : { merchant: '-', product: '-', ordersInWindow: 0 };
   const freshnessSec = lastOkAt ? Math.max(0, Math.floor((Date.now() - new Date(lastOkAt).getTime()) / 1000)) : null;
   const partialData = Boolean(meta?.statTruncated || meta?.payOrderTruncated);
+  
+  // Safe data access helpers with null checks
+  const safeRateWindow = data?.rateWindowMinutes || 5;
+  const hasData = data && Object.keys(data.data || {}).length > 0;
 
   return (
     <>
@@ -1172,10 +1179,10 @@ export default function App() {
           animate="visible"
         >
           {[
-            { label: `📊 Orders / ${data?.rateWindowMinutes || 5}m`, value: totalOrders5m, desc: 'Total live flow trong cửa sổ hiện tại', primary: true, trend: totalOrders5m, change: 5.2 },
-            { label: '🏢 Active merchants', value: merchantEntries.length, desc: 'Merchant còn hoạt động gần đây', trend: merchantEntries.length, change: -2.1 },
-            { label: '🧩 Active products', value: activeProducts, desc: 'Sản phẩm đang có movement', trend: activeProducts, change: 3.8 },
-            { label: '🔥 Hot / Warm', value: `${hotCount} / ${warmCount}`, desc: 'Hot & warm pairs đang chạy', trend: hotCount + warmCount, change: 1.5 },
+            { label: `📊 Orders / ${safeRateWindow}m`, value: totalOrders5m || 0, desc: 'Total live flow trong cửa sổ hiện tại', primary: true, trend: totalOrders5m, change: 5.2 },
+            { label: '🏢 Active merchants', value: merchantEntries?.length || 0, desc: 'Merchant còn hoạt động gần đây', trend: merchantEntries?.length, change: -2.1 },
+            { label: '🧩 Active products', value: activeProducts || 0, desc: 'Sản phẩm đang có movement', trend: activeProducts, change: 3.8 },
+            { label: '🔥 Hot / Warm', value: `${hotCount || 0} / ${warmCount || 0}`, desc: 'Hot & warm pairs đang chạy', trend: (hotCount || 0) + (warmCount || 0), change: 1.5 },
             { label: '🕒 Freshness', value: freshnessSec === null ? '-' : `${freshnessSec}s`, desc: freshnessSec === null ? 'Chưa sync' : 'Từ lần sync thành công gần nhất', accent: true }
           ].map((kpi, i) => (
             <motion.div 
