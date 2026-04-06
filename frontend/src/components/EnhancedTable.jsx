@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Virtuoso } from 'react-virtuoso';
 
 export function EnhancedTable({ 
@@ -37,6 +37,11 @@ export function EnhancedTable({
     toggleColumn
   } = tableState;
 
+  // Keyboard navigation state
+  const [focusedRowIndex, setFocusedRowIndex] = useState(-1);
+  const tableRef = useRef(null);
+  const rowRefs = useRef({});
+
   const getSortIcon = (column) => {
     if (sortColumn !== column) return '↕';
     return sortDirection === 'asc' ? '↑' : '↓';
@@ -45,6 +50,48 @@ export function EnhancedTable({
   const handleHeaderClick = (column) => {
     handleSort(column);
   };
+
+  // Keyboard navigation handlers
+  const handleKeyDown = useCallback((e) => {
+    if (rows.length === 0) return;
+
+    switch (e.key) {
+      case 'ArrowDown':
+        e.preventDefault();
+        setFocusedRowIndex(prev => {
+          const next = Math.min(prev + 1, rows.length - 1);
+          // Scroll focused row into view
+          const nextKey = `${rows[next].merchant}|||${rows[next].product}`;
+          setTimeout(() => rowRefs.current[nextKey]?.scrollIntoView({ block: 'nearest' }), 0);
+          return next;
+        });
+        break;
+      case 'ArrowUp':
+        e.preventDefault();
+        setFocusedRowIndex(prev => {
+          const next = Math.max(prev - 1, 0);
+          const nextKey = `${rows[next].merchant}|||${rows[next].product}`;
+          setTimeout(() => rowRefs.current[nextKey]?.scrollIntoView({ block: 'nearest' }), 0);
+          return next;
+        });
+        break;
+      case 'Enter':
+        e.preventDefault();
+        if (focusedRowIndex >= 0 && focusedRowIndex < rows.length) {
+          const row = rows[focusedRowIndex];
+          const rowKey = `${row.merchant}|||${row.product}`;
+          toggleRowSelection(rowKey);
+        }
+        break;
+      default:
+        break;
+    }
+  }, [rows, focusedRowIndex, toggleRowSelection]);
+
+  // Reset focus when page or data changes
+  useEffect(() => {
+    setFocusedRowIndex(-1);
+  }, [page, rows.length]);
 
   const headerStyle = (column) => ({
     padding: '10px 8px',
@@ -63,11 +110,17 @@ export function EnhancedTable({
     const rowKey = `${row.merchant}|||${row.product}`;
     const isChanged = changedKeys.has(rowKey);
     const isSelected = selectedRows.has(rowKey);
+    const isFocused = focusedRowIndex === index;
 
     return (
       <div 
         key={rowKey}
+        ref={el => rowRefs.current[rowKey] = el}
         className={`table-row ${isChanged ? 'changed' : ''} ${isSelected ? 'selected' : ''}`}
+        tabIndex={0}
+        role="row"
+        aria-selected={isSelected}
+        onClick={() => setFocusedRowIndex(index)}
         style={{
           borderBottom: '1px solid rgba(148,163,184,0.08)',
           display: 'grid',
@@ -79,8 +132,15 @@ export function EnhancedTable({
                              visibleColumns.merchantOrders ? '120px' : '0px',
           alignItems: 'center',
           padding: '10px 8px',
-          background: isChanged ? 'rgba(59, 130, 246, 0.1)' : 'transparent',
-          transition: 'background 0.3s ease'
+          background: isFocused 
+            ? 'rgba(59, 130, 246, 0.2)' 
+            : isChanged 
+              ? 'rgba(59, 130, 246, 0.1)' 
+              : 'transparent',
+          transition: 'background 0.15s ease',
+          outline: isFocused ? '2px solid #3b82f6' : 'none',
+          outlineOffset: '-2px',
+          cursor: 'pointer'
         }}
       >
         {visibleColumns.checkbox && (
@@ -272,11 +332,17 @@ export function EnhancedTable({
       </div>
       
       {/* Virtual Scrolling Table Body */}
-      <div style={{ 
-        border: '1px solid rgba(148,163,184,0.08)',
-        borderRadius: '0 0 8px 8px',
-        overflow: 'hidden'
-      }}>
+      <div 
+        ref={tableRef}
+        style={{ 
+          border: '1px solid rgba(148,163,184,0.08)',
+          borderRadius: '0 0 8px 8px',
+          overflow: 'hidden',
+          outline: 'none'
+        }}
+        onKeyDown={handleKeyDown}
+        tabIndex={0}
+      >
         {rows.length > 0 ? (
           <Virtuoso
             style={{ height: Math.min(rows.length * 50, 600) }}
