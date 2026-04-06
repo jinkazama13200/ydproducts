@@ -294,7 +294,8 @@ function Skeleton({ width = '100%', height = '20px', className = '' }) {
   );
 }
 
-export default function App() {
+// Main App component (wrapped with ErrorBoundary in main.jsx)
+function AppInner() {
   const [data, setData] = useState(null);
   const [meta, setMeta] = useState({});
   const [loading, setLoading] = useState(true);
@@ -1256,21 +1257,24 @@ export default function App() {
                 initial="hidden"
                 animate="visible"
               >
-                {topAlerts.map((row) => (
-                  <motion.div 
-                    className={`alert-chip ${row.level}`} 
-                    key={`${row.merchant}|||${row.product}`} 
-                    role="status"
-                    initial={{ opacity: 0, scale: 0.8 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    whileHover={{ scale: 1.05 }}
-                    transition={{ type: 'spring', stiffness: 400 }}
-                  >
-                    <strong>{row.merchant}</strong>
-                    <span>{row.product}</span>
-                    <b>{row.ordersInWindow}/{data?.rateWindowMinutes || 5}m</b>
-                  </motion.div>
-                ))}
+                {topAlerts.map((row, idx) => {
+                  const alertKey = `${row.merchant}|||${row.product}|||${idx}`;
+                  return (
+                    <motion.div 
+                      className={`alert-chip ${row.level}`} 
+                      key={alertKey} 
+                      role="status"
+                      initial={{ opacity: 0, scale: 0.8 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      whileHover={{ scale: 1.05 }}
+                      transition={{ type: 'spring', stiffness: 400 }}
+                    >
+                      <strong>{row.merchant || 'Unknown'}</strong>
+                      <span>{row.product || 'Unknown'}</span>
+                      <b>{row.ordersInWindow || 0}/{safeRateWindow}m</b>
+                    </motion.div>
+                  );
+                })}
               </motion.div>
             </motion.div>
           )}
@@ -1364,7 +1368,7 @@ export default function App() {
                     <div className="search-history-header">Recent Searches</div>
                     {searchHistory.map((term, i) => (
                       <motion.div 
-                        key={i} 
+                        key={`search-${term}-${i}`} 
                         className="search-history-item"
                         onClick={() => { setQuery(term); setShowSearchHistory(false); }}
                         role="option"
@@ -1497,7 +1501,7 @@ export default function App() {
                         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 8 }}>
                           {filterPresets.map((preset, i) => (
                             <motion.button 
-                              key={i}
+                              key={`filter-${preset.name}-${i}`}
                               onClick={() => loadPreset(preset)}
                               style={{ padding: '6px 12px', minWidth: 'auto', fontSize: 12 }}
                               variants={buttonVariants}
@@ -1508,7 +1512,7 @@ export default function App() {
                             </motion.button>
                           ))}
                           {userPresets.map((preset, i) => (
-                            <motion.div key={i} style={{ display: 'flex', gap: 4, alignItems: 'center' }} variants={itemVariants}>
+                            <motion.div key={`user-preset-${preset.name}-${i}`} style={{ display: 'flex', gap: 4, alignItems: 'center' }} variants={itemVariants}>
                               <motion.button 
                                 onClick={() => loadPreset(preset)}
                                 style={{ padding: '6px 12px', minWidth: 'auto', fontSize: 12 }}
@@ -1709,7 +1713,7 @@ export default function App() {
                   return (
                     <motion.div 
                       className={cls} 
-                      key={i} 
+                      key={rowKey} 
                       role="listitem" 
                       style={{ minHeight: '44px', padding: '12px 8px' }}
                       initial={{ opacity: 0, x: -10 }}
@@ -1719,10 +1723,10 @@ export default function App() {
                     >
                       <div className="name" style={{ gap: '10px' }}>
                         <LevelIcon n={x.ordersInWindow} showLabel={showLevelLabels} style={{ width: '28px', height: '28px', flex: '0 0 28px' }} />
-                        <span style={{ flex: 1 }}>{x.product}</span>
+                        <span style={{ flex: 1 }}>{x.product || 'Unknown product'}</span>
                         <span className={`level-chip ${levelClass(x.ordersInWindow)}`}>{levelLabel(x.ordersInWindow)}</span>
                       </div>
-                      <div className="rate" style={{ fontSize: '18px', minWidth: '80px' }}>{x.ordersInWindow}/{data?.rateWindowMinutes || 5}m</div>
+                      <div className="rate" style={{ fontSize: '18px', minWidth: '80px' }}>{x.ordersInWindow || 0}/{safeRateWindow}m</div>
                     </motion.div>
                   );
                 })}
@@ -1811,3 +1815,6 @@ export default function App() {
     </>
   );
 }
+
+// Export AppInner as default (ErrorBoundary already wraps in main.jsx)
+export default AppInner;
