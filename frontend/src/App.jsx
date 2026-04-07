@@ -4,6 +4,8 @@ import { useTableState } from './hooks/useTableState';
 import { EnhancedTable } from './components/EnhancedTable';
 import { WeekTrendChart, MerchantSparkline } from './components/Charts';
 import { ChangeIndicator } from './components/DataVisualization';
+import { ErrorState, LoadingState } from './components/ErrorState';
+import { Skeleton, SkeletonKPI, SkeletonTableRow, SkeletonCardGrid, SkeletonToolbar } from './components/Skeleton';
 
 const API_URL = 'http://localhost:8787/api/running-products';
 const HOT_VIDEO = `${import.meta.env.BASE_URL}hot-icon.mp4`;
@@ -280,18 +282,6 @@ function AnimatedNumber({ value, duration = 0.5 }) {
   }, [value, duration]);
 
   return <span>{displayValue}</span>;
-}
-
-// Skeleton component
-function Skeleton({ width = '100%', height = '20px', className = '' }) {
-  return (
-    <motion.div
-      className={`skeleton ${className}`}
-      style={{ width, height }}
-      variants={skeletonVariants}
-      animate="animate"
-    />
-  );
 }
 
 // Main App component (wrapped with ErrorBoundary in main.jsx)
@@ -1640,40 +1630,34 @@ function AppInner() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
           >
+            <SkeletonToolbar />
             <motion.div className="summary card" style={{ marginBottom: 12 }}>
-              {[...Array(5)].map((_, i) => (
-                <Skeleton key={i} height="96px" className="skeleton-kpi" />
-              ))}
+              <SkeletonKPI count={5} />
             </motion.div>
             <motion.div className="card" style={{ marginBottom: 12 }}>
-              <Skeleton height="20px" width="60%" style={{ marginBottom: '8px' }} />
-              <Skeleton height="20px" width="80%" />
+              <Skeleton width="60%" height="20px" style={{ marginBottom: '8px' }} />
+              <Skeleton width="80%" height="20px" />
             </motion.div>
             {viewMode === 'table' ? (
               <motion.div className="card fade-in" style={{ marginBottom: 16 }}>
-                {[...Array(6)].map((_, i) => (
-                  <Skeleton key={i} height="40px" className="skeleton-table-row" />
-                ))}
+                <SkeletonTableRow count={6} columns={4} />
               </motion.div>
             ) : (
               <motion.div className="grid">
-                {[...Array(4)].map((_, i) => (
-                  <Skeleton key={i} height="200px" className="skeleton-card" />
-                ))}
+                <SkeletonCardGrid count={4} />
               </motion.div>
             )}
           </motion.div>
         )}
         
         {error && (
-          <motion.p 
-            className="err" 
-            role="alert"
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-          >
-            Error: {error}
-          </motion.p>
+          <ErrorState
+            error={error}
+            onRetry={fetchData}
+            lastSuccessfulFetch={lastOkAt}
+            variant="card"
+            className="fade-in"
+          />
         )}
 
         {/* Table view - using EnhancedTable with proper hook ordering */}
