@@ -765,6 +765,10 @@ function AppInner() {
     setMinOrders(0);
     setMerchantFilter('');
     setToolbarCollapsed(false);
+    setAdvancedFiltersOpen(false);
+    setShowSearchHistory(false);
+    setShowPresets(false);
+    setFocusedIndex(-1);
     addToast('🧹 All filters cleared', 'success', 2000);
   }, [addToast]);
 
