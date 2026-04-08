@@ -6,6 +6,8 @@ import { WeekTrendChart, MerchantSparkline } from './components/Charts';
 import { ChangeIndicator } from './components/DataVisualization';
 import { ErrorState, LoadingState } from './components/ErrorState';
 import { Skeleton, SkeletonKPI, SkeletonTableRow, SkeletonCardGrid, SkeletonToolbar } from './components/Skeleton';
+import { useWebSocket } from './hooks/useWebSocket';
+import { ConnectionStatus } from './components/ConnectionStatus';
 
 const API_URL = 'http://localhost:8787/api/running-products';
 const HOT_VIDEO = `${import.meta.env.BASE_URL}hot-icon.mp4`;
@@ -382,6 +384,19 @@ function AppInner() {
     const saved = localStorage.getItem('webCfg');
     return saved ? { ...defaultCfg, ...JSON.parse(saved) } : defaultCfg;
   });
+
+  // WebSocket hook - placed AFTER all state declarations
+  const { status: wsStatus, circuitBreaker: wsCircuitBreaker, usingCache: wsUsingCache, lastUpdate: wsLastUpdate, wsData } = useWebSocket();
+
+  // Bonus: When WebSocket sends data-update, update data state
+  useEffect(() => {
+    if (wsData && wsData.success && wsData.data) {
+      setData(wsData.data);
+      setMeta(wsData.meta || {});
+      setLastOkAt(new Date().toISOString());
+      setStale(false);
+    }
+  }, [wsData]);
 
   // Initialize audio
   useEffect(() => {
@@ -1118,6 +1133,7 @@ function AppInner() {
             >
               API {health.state.toUpperCase()} {health.latencyMs ? `• ${health.latencyMs}ms` : ''}
             </motion.span>
+            <ConnectionStatus status={wsStatus} circuitBreaker={wsCircuitBreaker} usingCache={wsUsingCache} />
             {partialData && (
               <motion.span 
                 className="stale" 

@@ -4,6 +4,8 @@ const axios = require('axios');
 const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
+const http = require('http');
+const { Server: SocketIOServer } = require('socket.io');
 require('dotenv').config();
 
 const app = express();
@@ -166,6 +168,8 @@ function circuitBreakerRecordSuccess() {
       previousState: runtimeState.circuitBreakerState,
       failures: runtimeState.circuitBreakerFailures 
     });
+    // Emit WebSocket event when circuit breaker closes
+    emitConnectionStatus(false);
   }
   runtimeState.circuitBreakerState = 'CLOSED';
   runtimeState.circuitBreakerFailures = 0;
@@ -181,6 +185,8 @@ function circuitBreakerRecordFailure() {
       failures: runtimeState.circuitBreakerFailures,
       resetTimeoutMs: CIRCUIT_BREAKER_RESET_TIMEOUT_MS 
     });
+    // Emit WebSocket event when circuit breaker opens
+    emitConnectionStatus(true);
   } else {
     log('warn', 'circuit_breaker_failure_recorded', { 
       failures: runtimeState.circuitBreakerFailures,
@@ -647,6 +653,9 @@ app.get('/api/running-products', async (req, res) => {
     runtimeState.lastSuccessAt = new Date().toISOString();
     runtimeState.lastError = null;
 
+    // === NEW: Emit WebSocket data-update event ===
+    emitDataUpdate(payload);
+
     log('info', 'running_products_ok', {
       reqId: req.reqId,
       token: tokenId(runtimeToken),
@@ -723,7 +732,57 @@ app.use((err, req, res, next) => {
   return res.status(status).json(buildErrorBody(status === 403 ? 'CORS_FORBIDDEN' : 'INTERNAL_ERROR', err?.message || 'Unknown error', false));
 });
 
-const server = app.listen(PORT, () => {
+// === WebSocket (Socket.IO) Setup ===
+const httpServer = http.createServer(app);
+const io = new SocketIOServer(httpServer, {
+  cors: {
+    origin: ALLOWED_ORIGINS.length > 0 ? ALLOWED_ORIGINS : '*',
+    methods: ['GET', 'POST']
+  },
+  transports: ['websocket', 'polling']
+});
+
+// WebSocket connection handling
+io.on('connection', (socket) => {
+  log('info', 'ws_client_connected', { socketId: socket.id });
+  
+  // Send current state on connect
+  socket.emit('connection-status', {
+    circuitBreaker: runtimeState.circuitBreakerState,
+    usingCache: runtimeState.circuitBreakerState === 'OPEN'
+  });
+  
+  socket.on('disconnect', (reason) => {
+    log('info', 'ws_client_disconnected', { socketId: socket.id, reason });
+  });
+});
+
+// Helper to emit connection status to all clients
+function emitConnectionStatus(usingCache) {
+  io.emit('connection-status', {
+    circuitBreaker: runtimeState.circuitBreakerState,
+    usingCache
+  });
+}
+
+// Helper to emit data updates to all clients
+function emitDataUpdate(payload) {
+  io.emit('data-update', payload);
+}
+
+// Helper to emit level changes
+function emitLevelChange(merchant, product, prevLevel, newLevel, orders) {
+  io.emit('level-change', {
+    merchant,
+    product,
+    prevLevel,
+    newLevel,
+    orders,
+    timestamp: new Date().toISOString()
+  });
+}
+
+const server = httpServer.listen(PORT, () => {
   log('info', 'backend_started', {
     port: PORT,
     nodeEnv: NODE_ENV,
