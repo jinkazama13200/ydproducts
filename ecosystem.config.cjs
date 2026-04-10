@@ -1,8 +1,11 @@
+const path = require('path');
+const projectRoot = __dirname;
+
 module.exports = {
   apps: [
     {
       name: 'product-monitor-backend',
-      cwd: '/home/jinkazama132oo/.openclaw/workspace/ydproducts/backend',
+      cwd: path.join(projectRoot, 'backend'),
       script: 'server.js',
       interpreter: 'node',
       env: {
@@ -18,7 +21,7 @@ module.exports = {
     },
     {
       name: 'product-monitor-frontend',
-      cwd: '/home/jinkazama132oo/.openclaw/workspace/ydproducts/frontend',
+      cwd: path.join(projectRoot, 'frontend'),
       script: 'npm',
       args: 'run preview -- --host 0.0.0.0 --port 5173',
       env: {

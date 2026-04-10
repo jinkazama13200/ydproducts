@@ -155,9 +155,11 @@ export function useHeatmapData(merchantData) {
 
     if (!merchantData) return heatmap;
 
+    // TODO: Use real historical data from backend instead of simulated distribution
+    console.warn('[useHeatmapData] Using simulated heatmap data — replace with real historical data from backend');
+
     merchantData.forEach(item => {
       const orders = Number(item.ordersInWindow || 0);
-      // Distribute orders across hours based on current time
       const currentHour = new Date().getHours();
       
       // Simulate distribution around current hour
