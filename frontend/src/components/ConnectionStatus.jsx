@@ -1,13 +1,21 @@
 import React from 'react';
 
+function formatFreshness(lastUpdate) {
+  if (!lastUpdate) return null;
+  const sec = Math.max(0, Math.floor((Date.now() - new Date(lastUpdate).getTime()) / 1000));
+  if (sec < 60) return `${sec}s`;
+  const min = Math.floor(sec / 60);
+  return `${min}m`;
+}
+
 /**
- * ConnectionStatus - Simple badge showing WebSocket connection status
+ * ConnectionStatus - Badge showing real-time connection state
  *
- * 🟢 Live (connected, circuit breaker CLOSED)
+ * 🟢 Live (connected, receiving push data)
  * 🟡 Using Cache (circuit breaker OPEN)
- * ⚪ Polling (disconnected)
+ * ⚪ Polling (disconnected, falling back to HTTP)
  */
-export function ConnectionStatus({ status, circuitBreaker, usingCache }) {
+export function ConnectionStatus({ status, circuitBreaker, usingCache, lastUpdate }) {
   let icon, label, className;
 
   if (status === 'connected' && circuitBreaker === 'CLOSED') {
@@ -24,12 +32,15 @@ export function ConnectionStatus({ status, circuitBreaker, usingCache }) {
     className = 'connection-status polling';
   }
 
+  const freshness = formatFreshness(lastUpdate);
+  const displayLabel = freshness ? `${label} · ${freshness}` : status === 'disconnected' ? `${label} · Connecting...` : label;
+
   return (
     <span
       className={className}
       role="status"
-      aria-label={`Connection status: ${label}`}
-      title={`WebSocket: ${status} | Circuit Breaker: ${circuitBreaker} | ${usingCache ? 'Using cache' : 'Live data'}`}
+      aria-label={`Connection status: ${label}${freshness ? `, last update ${freshness} ago` : ''}`}
+      title={`WebSocket: ${status} | Circuit Breaker: ${circuitBreaker} | ${usingCache ? 'Using cache' : 'Live data'}${freshness ? ` | Last push: ${freshness} ago` : ''}`}
       style={{
         display: 'inline-flex',
         alignItems: 'center',
@@ -58,7 +69,7 @@ export function ConnectionStatus({ status, circuitBreaker, usingCache }) {
         whiteSpace: 'nowrap',
       }}
     >
-      {icon} {label}
+      {icon} {displayLabel}
     </span>
   );
 }

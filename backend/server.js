@@ -5,11 +5,15 @@ const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
 const http = require('http');
+const compression = require('compression');
 const { Server: SocketIOServer } = require('socket.io');
 require('dotenv').config();
 
 const app = express();
 app.disable('x-powered-by');
+
+// Compression middleware (before routes)
+app.use(compression());
 
 function toNumber(value, fallback) {
   const n = Number(value);
@@ -45,6 +49,10 @@ const BASE_RETRY_DELAY_MS = Math.max(100, toNumber(process.env.BASE_RETRY_DELAY_
 
 // === NEW: Timeout for paginated calls ===
 const PAGINATED_CALL_TIMEOUT_MS = Math.max(5000, toNumber(process.env.PAGINATED_CALL_TIMEOUT_MS, 45000)); // 45 seconds default
+
+// === Real-time Push Configuration ===
+const PUSH_INTERVAL_MS = Math.max(2000, toNumber(process.env.PUSH_INTERVAL_MS, 5000)); // Auto-poll interval (default 5s)
+const PUSH_ENABLED = String(process.env.PUSH_ENABLED || 'true').toLowerCase() === 'true';
 
 const runtimeState = {
   startedAt: Date.now(),
@@ -100,12 +108,15 @@ function writePersistentCache(key, payload, ttlMs) {
   try {
     ensureCacheDir();
     const filePath = getCacheFilePath(key);
+    const tmpPath = filePath + '.tmp';
     const entry = {
       expiresAt: Date.now() + ttlMs,
       payload,
       cachedAt: Date.now()
     };
-    fs.writeFileSync(filePath, JSON.stringify(entry), 'utf8');
+    // Atomic write: write to .tmp then rename (POSIX atomic)
+    fs.writeFileSync(tmpPath, JSON.stringify(entry), 'utf8');
+    fs.renameSync(tmpPath, filePath);
     log('debug', 'persistent_cache_write', { key, ttlMs, path: filePath });
   } catch (e) {
     log('error', 'persistent_cache_write_error', { key, error: e.message });
@@ -460,8 +471,10 @@ function buildApiError(e) {
 
 app.use(cors({
   origin(origin, callback) {
-    if (!origin) return callback(null, true);
+    // Allow all origins only if ALLOWED_ORIGINS is empty (development)
     if (ALLOWED_ORIGINS.length === 0) return callback(null, true);
+    // Require origin header when origins are configured
+    if (!origin) return callback(new Error('Origin header required'));
     if (ALLOWED_ORIGINS.includes(origin)) return callback(null, true);
     return callback(new Error('Not allowed by CORS'));
   }
@@ -526,6 +539,14 @@ app.get('/health', (_, res) => {
 app.get('/api/debug/upstream', async (req, res) => {
   if (!ENABLE_DEBUG_UPSTREAM) {
     return res.status(404).json(buildErrorBody('NOT_FOUND', 'Debug endpoint is disabled', false));
+  }
+
+  // Require internal API key for debug endpoint in production
+  if (NODE_ENV === 'production') {
+    const provided = String(req.header('x-internal-key') || '').trim();
+    if (!provided || provided !== INTERNAL_API_KEY) {
+      return res.status(401).json(buildErrorBody('UNAUTHORIZED', 'Debug endpoint requires internal API key in production', false));
+    }
   }
 
   const token = String(req.header('x-product-token') || PRODUCT_TOKEN || '').trim();
@@ -742,16 +763,25 @@ const io = new SocketIOServer(httpServer, {
   transports: ['websocket', 'polling']
 });
 
+// === Real-time: Track previous state for level-change detection ===
+const prevLevelMap = new Map(); // "merchant|||product" -> "hot"|"warm"|"idle"
+let lastPushPayload = null; // Cache last pushed payload for new client sync
+
 // WebSocket connection handling
 io.on('connection', (socket) => {
   log('info', 'ws_client_connected', { socketId: socket.id });
-  
+
   // Send current state on connect
   socket.emit('connection-status', {
     circuitBreaker: runtimeState.circuitBreakerState,
     usingCache: runtimeState.circuitBreakerState === 'OPEN'
   });
-  
+
+  // Send last known data immediately so new client doesn't wait
+  if (lastPushPayload) {
+    socket.emit('data-update', lastPushPayload);
+  }
+
   socket.on('disconnect', (reason) => {
     log('info', 'ws_client_disconnected', { socketId: socket.id, reason });
   });
@@ -767,7 +797,40 @@ function emitConnectionStatus(usingCache) {
 
 // Helper to emit data updates to all clients
 function emitDataUpdate(payload) {
+  lastPushPayload = payload;
   io.emit('data-update', payload);
+}
+
+// Helper to detect and emit level changes
+function detectAndEmitLevelChanges(grouped) {
+  const currentLevelMap = new Map();
+
+  for (const [merchant, items] of Object.entries(grouped)) {
+    for (const item of items) {
+      const key = `${merchant}|||${item.product || 'UNKNOWN'}`;
+      const n = Number(item.ordersInWindow || 0);
+      const newLevel = n >= 10 ? 'hot' : n >= 3 ? 'warm' : 'idle';
+      currentLevelMap.set(key, newLevel);
+
+      const prevLevel = prevLevelMap.get(key);
+      if (prevLevel && prevLevel !== newLevel) {
+        emitLevelChange(merchant, item.product || 'UNKNOWN', prevLevel, newLevel, n);
+      }
+    }
+  }
+
+  // Detect products that disappeared (were in prev but not in current)
+  for (const [key, prevLevel] of prevLevelMap.entries()) {
+    if (!currentLevelMap.has(key)) {
+      const [merchant, product] = key.split('|||');
+      emitLevelChange(merchant, product, prevLevel, 'idle', 0);
+    }
+  }
+
+  prevLevelMap.clear();
+  for (const [k, v] of currentLevelMap) {
+    prevLevelMap.set(k, v);
+  }
 }
 
 // Helper to emit level changes
@@ -782,6 +845,96 @@ function emitLevelChange(merchant, product, prevLevel, newLevel, orders) {
   });
 }
 
+// === Real-time: Auto-fetch and push data to all WebSocket clients ===
+let pushInProgress = false;
+
+async function autoFetchAndPush() {
+  if (pushInProgress) return; // Prevent overlapping calls
+  if (!PRODUCT_TOKEN) return; // Need server-side token for auto-poll
+  if (io.engine.clientsCount === 0) return; // No clients connected, skip
+
+  pushInProgress = true;
+  const t0 = Date.now();
+
+  try {
+    // Auto-push ALWAYS fetches fresh data for real-time updates
+    // Do NOT check cache freshness here — cache is only for HTTP endpoint fallback
+    const cacheKey = tokenCacheKey(PRODUCT_TOKEN);
+
+    const [statResult, rateResult] = await Promise.all([
+      fetchMchProductStatAll(PRODUCT_TOKEN),
+      fetchRateMap(PRODUCT_TOKEN)
+    ]);
+
+    const running = statResult.records
+      .filter(r => Number(r.totalOrderCount || 0) > 0)
+      .map(r => ({
+        merchant: r.mchName || 'UNKNOWN',
+        product: r.productName || 'UNKNOWN',
+        totalOrderCount: Number(r.totalOrderCount || 0),
+        orderSuccessCount: Number(r.orderSuccessCount || 0),
+        totalAmount: Number(r.totalAmount || 0),
+        ordersInWindow: rateResult.map.get(`${r.mchName || 'UNKNOWN'}|||${r.productName || 'UNKNOWN'}`) || 0
+      }));
+
+    const grouped = {};
+    for (const row of running) {
+      if (!grouped[row.merchant]) grouped[row.merchant] = [];
+      grouped[row.merchant].push(row);
+    }
+    for (const k of Object.keys(grouped)) {
+      grouped[k].sort((a, b) => b.ordersInWindow - a.ordersInWindow || b.totalAmount - a.totalAmount);
+    }
+
+    const payload = buildSuccess({
+      fetchedAt: new Date().toISOString(),
+      rateWindowMinutes: RATE_WINDOW_MINUTES,
+      merchantCount: Object.keys(grouped).length,
+      pairCount: running.length,
+      data: grouped
+    }, {
+      statPagesFetched: statResult.pagesFetched,
+      statTotalPages: statResult.totalPages,
+      statTruncated: statResult.truncated,
+      payOrderFetchedCount: rateResult.fetchedCount,
+      payOrderTotal: rateResult.total,
+      payOrderTruncated: rateResult.truncated,
+      ms: Date.now() - t0,
+      source: 'auto-push'
+    });
+
+    // Update caches — use short TTL for in-memory (prevents HTTP endpoint over-fetching)
+    // Persistent cache uses longer TTL for fallback when API is down
+    cache.set(cacheKey, { expiresAt: Date.now() + CACHE_TTL_MS, payload, cachedAt: Date.now() });
+    writePersistentCache(cacheKey, payload, CACHE_MAX_AGE_MS);
+
+    runtimeState.lastSuccessAt = new Date().toISOString();
+    runtimeState.lastError = null;
+
+    // Detect level changes and emit
+    detectAndEmitLevelChanges(grouped);
+
+    // Push to all connected clients
+    emitDataUpdate(payload);
+
+    log('info', 'auto_push_ok', {
+      merchants: Object.keys(grouped).length,
+      pairs: running.length,
+      clients: io.engine.clientsCount,
+      ms: Date.now() - t0
+    });
+  } catch (e) {
+    log('error', 'auto_push_failed', {
+      message: e.message,
+      code: e.code,
+      stack: e.stack,
+      ms: Date.now() - t0
+    });
+  } finally {
+    pushInProgress = false;
+  }
+}
+
 const server = httpServer.listen(PORT, () => {
   log('info', 'backend_started', {
     port: PORT,
@@ -794,13 +947,32 @@ const server = httpServer.listen(PORT, () => {
     baseRetryDelayMs: BASE_RETRY_DELAY_MS,
     paginatedCallTimeoutMs: PAGINATED_CALL_TIMEOUT_MS,
     circuitBreakerThreshold: CIRCUIT_BREAKER_FAILURE_THRESHOLD,
-    circuitBreakerResetTimeoutMs: CIRCUIT_BREAKER_RESET_TIMEOUT_MS
+    circuitBreakerResetTimeoutMs: CIRCUIT_BREAKER_RESET_TIMEOUT_MS,
+    pushEnabled: PUSH_ENABLED,
+    pushIntervalMs: PUSH_INTERVAL_MS
   });
-  
+
   // Initialize cache directory on startup
   ensureCacheDir();
   // Clean up old cache files on startup
   cleanupPersistentCache();
+  // Periodic cache cleanup every 5 minutes
+  setInterval(cleanupPersistentCache, 5 * 60 * 1000);
+
+  // === Real-time: Auto-poll and push data via WebSocket ===
+  if (PUSH_ENABLED && PRODUCT_TOKEN) {
+    log('info', 'realtime_push_started', { intervalMs: PUSH_INTERVAL_MS });
+
+    // Initial fetch immediately
+    autoFetchAndPush();
+
+    // Then on interval
+    setInterval(autoFetchAndPush, PUSH_INTERVAL_MS);
+  } else {
+    log('info', 'realtime_push_disabled', {
+      reason: !PUSH_ENABLED ? 'PUSH_ENABLED=false' : 'PRODUCT_TOKEN not set'
+    });
+  }
 });
 
 function shutdown(signal) {

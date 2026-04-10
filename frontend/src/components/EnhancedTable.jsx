@@ -1,12 +1,16 @@
 import React from 'react';
 import { Virtuoso } from 'react-virtuoso';
+import { levelLabel } from '../utils/levels';
 
-export function EnhancedTable({ 
-  rows, 
-  data, 
-  tableState, 
-  levelFilter, 
-  query, 
+export function EnhancedTable({
+  rows,
+  data,
+  tableState,
+  levelFilter,
+  query,
+  onClearFilters,
+  hasData,
+  videoIconsEnabled,
   sortBy,
   rateWindowMinutes,
   changedKeys,
@@ -99,7 +103,7 @@ export function EnhancedTable({
           <div style={{ padding: '0 8px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <span className={`lvl ${levelClass(row.ordersInWindow || 0)}`}>
-                <LevelIcon n={row.ordersInWindow || 0} />
+                <LevelIcon n={row.ordersInWindow || 0} videoEnabled={videoIconsEnabled} />
               </span>
               <span className={`level-chip ${levelClass(row.ordersInWindow || 0)}`}>
                 {levelLabel(row.ordersInWindow || 0)}
@@ -161,7 +165,28 @@ export function EnhancedTable({
                 defaultValue=""
                 onChange={(e) => {
                   if (e.target.value === 'export') {
-                    // Export selected
+                    // Export selected rows as CSV
+                    if (data && data.length > 0) {
+                      const csvRows = [['merchant', 'product', 'orders', 'level']];
+                      data.filter(row => selectedRows?.has(`${row.merchant || 'unknown'}|||${row.product || 'unknown'}`)).forEach(row => {
+                        csvRows.push([
+                          row.merchant || 'Unknown',
+                          row.product || 'Unknown',
+                          String(row.ordersInWindow || 0),
+                          levelLabel(row.ordersInWindow || 0)
+                        ]);
+                      });
+                      const csv = csvRows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n');
+                      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+                      const url = URL.createObjectURL(blob);
+                      const a = document.createElement('a');
+                      a.href = url;
+                      a.download = 'yd-selected-products-' + new Date().toISOString().replace(/[:.]/g, '-') + '.csv';
+                      document.body.appendChild(a);
+                      a.click();
+                      document.body.removeChild(a);
+                      URL.revokeObjectURL(url);
+                    }
                   } else if (e.target.value === 'clear') {
                     clearSelection();
                   }
@@ -286,7 +311,27 @@ export function EnhancedTable({
           />
         ) : (
           <div style={{ padding: 40, textAlign: 'center', color: '#64748b' }}>
-            No products match your filters
+            {!hasData ? (
+              <>
+                <div style={{ fontSize: 24, marginBottom: 12 }}>⏳</div>
+                <div style={{ fontWeight: 600, color: '#94a3b8', marginBottom: 8 }}>Waiting for data...</div>
+                <div style={{ fontSize: 13 }}>Connecting to WebSocket server</div>
+              </>
+            ) : (query || levelFilter !== 'all') ? (
+              <>
+                <div style={{ fontSize: 24, marginBottom: 12 }}>🔍</div>
+                <div style={{ fontWeight: 600, color: '#94a3b8', marginBottom: 8 }}>No products match your filters</div>
+                <button onClick={onClearFilters} style={{ marginTop: 8, padding: '8px 16px', minWidth: 'auto', fontSize: 13, background: 'linear-gradient(135deg, #0891b2, #0e7490)' }}>
+                  Clear Filters
+                </button>
+              </>
+            ) : (
+              <>
+                <div style={{ fontSize: 24, marginBottom: 12 }}>📭</div>
+                <div style={{ fontWeight: 600, color: '#94a3b8', marginBottom: 8 }}>No running products</div>
+                <div style={{ fontSize: 13 }}>All products are currently idle</div>
+              </>
+            )}
           </div>
         )}
       </div>

@@ -1,23 +1,23 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { io } from 'socket.io-client';
 
 const WS_URL = import.meta.env.VITE_WS_URL || 'http://localhost:8787';
 
 /**
- * useWebSocket - Simple hook for real-time WebSocket notifications
+ * useWebSocket - Real-time WebSocket hook
  *
- * Listens for: 'data-update', 'level-change', 'connection-status'
- * Returns: { status, circuitBreaker, usingCache, lastUpdate }
+ * PRIMARY data source: receives 'data-update' pushed from backend auto-poll
+ * Also tracks: 'level-change', 'connection-status'
  *
- * NO dependency on addToast or other App functions.
- * Polling remains the PRIMARY data source - this is bonus/notifications only.
+ * Returns: { status, circuitBreaker, usingCache, lastUpdate, wsData, levelChanges }
  */
 export function useWebSocket() {
-  const [status, setStatus] = useState('disconnected'); // 'connected' | 'disconnected'
-  const [circuitBreaker, setCircuitBreaker] = useState('CLOSED'); // 'CLOSED' | 'OPEN' | 'HALF_OPEN'
+  const [status, setStatus] = useState('disconnected');
+  const [circuitBreaker, setCircuitBreaker] = useState('CLOSED');
   const [usingCache, setUsingCache] = useState(false);
   const [lastUpdate, setLastUpdate] = useState(null);
-  const [wsData, setWsData] = useState(null); // Latest data from WebSocket (bonus)
+  const [wsData, setWsData] = useState(null);
+  const [levelChanges, setLevelChanges] = useState([]); // Recent level changes
   const socketRef = useRef(null);
 
   useEffect(() => {
@@ -27,8 +27,8 @@ export function useWebSocket() {
       socket = io(WS_URL, {
         transports: ['websocket', 'polling'],
         reconnection: true,
-        reconnectionAttempts: 10,
-        reconnectionDelay: 2000,
+        reconnectionAttempts: 20,
+        reconnectionDelay: 1000,
         reconnectionDelayMax: 10000,
         timeout: 10000,
       });
@@ -54,24 +54,24 @@ export function useWebSocket() {
     });
 
     socket.on('connection-status', (data) => {
-      console.log('[useWebSocket] connection-status:', data);
-      if (data.circuitBreaker) {
-        setCircuitBreaker(data.circuitBreaker);
-      }
-      if (data.usingCache !== undefined) {
-        setUsingCache(data.usingCache);
-      }
+      if (data.circuitBreaker) setCircuitBreaker(data.circuitBreaker);
+      if (data.usingCache !== undefined) setUsingCache(data.usingCache);
     });
 
+    // Primary data source — pushed from backend auto-poll
     socket.on('data-update', (data) => {
-      console.log('[useWebSocket] data-update received');
       setLastUpdate(new Date().toISOString());
       setWsData(data);
     });
 
-    socket.on('level-change', (data) => {
-      console.log('[useWebSocket] level-change:', data);
+    // Level change events (hot↔warm↔idle transitions)
+    socket.on('level-change', (change) => {
       setLastUpdate(new Date().toISOString());
+      setLevelChanges(prev => {
+        // Keep last 50 level changes, newest first
+        const updated = [change, ...prev].slice(0, 50);
+        return updated;
+      });
     });
 
     return () => {
@@ -82,11 +82,17 @@ export function useWebSocket() {
     };
   }, []);
 
+  const clearLevelChanges = useCallback(() => {
+    setLevelChanges([]);
+  }, []);
+
   return {
     status,
     circuitBreaker,
     usingCache,
     lastUpdate,
-    wsData, // Bonus: latest data from WebSocket, can be used to update UI
+    wsData,
+    levelChanges,
+    clearLevelChanges,
   };
 }
