@@ -3,18 +3,17 @@ import { LineChart, Line, ResponsiveContainer } from 'recharts';
 
 /**
  * Compact sparkline for merchant row
+ * Shows real data if available, placeholder if empty
  */
 export function MerchantSparkline({ data, width = 80, height = 28 }) {
   const chartData = useMemo(() => {
     const safeData = Array.isArray(data) ? data : [];
     if (safeData.length === 0) return [];
-    
-    // Generate synthetic trend data from current orders
-    const baseValue = safeData.reduce((s, d) => s + Number(d?.ordersInWindow || 0), 0) / safeData.length;
-    
-    return Array.from({ length: 10 }, (_, i) => ({
+
+    // Use real ordersInWindow values
+    return safeData.map((item, i) => ({
       index: i,
-      value: Math.round(baseValue * (0.5 + Math.random() * 1.5))
+      value: Number(item?.ordersInWindow || 0)
     }));
   }, [data]);
 
@@ -27,14 +26,8 @@ export function MerchantSparkline({ data, width = 80, height = 28 }) {
     );
   }
 
-  const getColor = () => {
-    const total = safeData.reduce((s, d) => s + Number(d?.ordersInWindow || 0), 0);
-    if (total >= 10) return '#fca5a5';
-    if (total >= 3) return '#a5f3fc';
-    return '#64748b';
-  };
-
-  const color = getColor();
+  const total = safeData.reduce((s, d) => s + Number(d?.ordersInWindow || 0), 0);
+  const color = total >= 10 ? '#fca5a5' : total >= 3 ? '#a5f3fc' : '#64748b';
 
   return (
     <ResponsiveContainer width={width} height={height}>
@@ -53,23 +46,26 @@ export function MerchantSparkline({ data, width = 80, height = 28 }) {
 
 /**
  * 7-day trend chart for KPI cards
+ * Shows real data if provided, "No data" placeholder if empty
  */
 export function WeekTrendChart({ data, width = 60, height = 32, color = '#06b6d4' }) {
   const chartData = useMemo(() => {
     const safeData = Array.isArray(data) ? data : [];
-    if (safeData.length === 0) {
-      // Generate placeholder data
-      return Array.from({ length: 7 }, (_, i) => ({
-        day: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'][i],
-        value: Math.round(50 + Math.random() * 100)
-      }));
-    }
-    
+    if (safeData.length === 0) return null;
+
     return safeData.slice(0, 7).map((value, i) => ({
       day: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'][i % 7],
       value: Number(value) || 0
     }));
   }, [data]);
+
+  if (!chartData || chartData.length === 0) {
+    return (
+      <div style={{ width, height, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <span style={{ color: '#64748b', fontSize: 9 }}>--</span>
+      </div>
+    );
+  }
 
   return (
     <ResponsiveContainer width={width} height={height}>
@@ -93,12 +89,6 @@ export function ActivityBarChart({ data, width = 120, height = 40 }) {
   const chartData = useMemo(() => {
     const safeData = Array.isArray(data) ? data : [];
     if (safeData.length === 0) return [];
-    
-    const categories = [
-      { label: 'Hot', threshold: 10, color: '#fca5a5' },
-      { label: 'Warm', threshold: 3, color: '#a5f3fc' },
-      { label: 'Idle', threshold: 0, color: '#94a3b8' }
-    ];
 
     const hot = safeData.filter(d => Number(d?.ordersInWindow || 0) >= 10).length;
     const warm = safeData.filter(d => Number(d?.ordersInWindow || 0) >= 3 && Number(d?.ordersInWindow || 0) < 10).length;

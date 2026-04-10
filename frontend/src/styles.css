@@ -244,6 +244,13 @@ tbody td, thead th{padding:12px 10px}
 .toast-info{background:rgba(8,145,178,.9);color:#fff;border-color:rgba(8,145,178,.6)}
 .toast-success{background:rgba(16,185,129,.9);color:#fff;border-color:rgba(16,185,129,.6)}
 .toast-error{background:rgba(127,29,29,.95);color:#fecaca;border-color:rgba(239,68,68,.5)}
+
+/* Toast close button & progress bar */
+.toast{position:relative;padding-right:32px}
+.toast-close{position:absolute;top:8px;right:8px;background:none!important;border:none;color:rgba(255,255,255,.6);cursor:pointer;font-size:14px;min-height:auto!important;padding:0!important;box-shadow:none!important;line-height:1}
+.toast-close:hover{color:rgba(255,255,255,.9);transform:none!important;box-shadow:none!important}
+.toast-progress{position:absolute;bottom:0;left:0;height:3px;border-radius:0 0 0 12px;animation:toastProgress linear forwards}
+@keyframes toastProgress{from{width:100%}to{width:0%}}
 @keyframes slideIn{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}
 @keyframes fadeOut{from{opacity:1}to{opacity:0}}
 
