@@ -46,7 +46,7 @@ export function CardView({ merchantEntries, changedKeys, showLevelLabels, rateWi
                   initial={{ opacity: 0, x: -10 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: 0.2 + idx * 0.03 + i * 0.02 }}
-                  whileHover={{ backgroundColor: 'rgba(103,232,249,0.12)' }}
+                  whileHover={{ backgroundColor: 'rgba(255,255,255,0.05)' }}
                 >
                   <div className="name">
                     <LevelIcon n={ordersVal} showLabel={showLevelLabels} videoEnabled={videoIconsEnabled} />
@@ -62,7 +62,7 @@ export function CardView({ merchantEntries, changedKeys, showLevelLabels, rateWi
 
             {safeItems.length > 6 && (
               <motion.p
-                style={{ color: '#94a3b8', marginTop: 8, fontSize: 13 }}
+                style={{ color: '#8a8f98', marginTop: 8, fontSize: 13 }}
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
               >

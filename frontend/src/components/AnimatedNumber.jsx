@@ -1,11 +1,13 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 
 export function AnimatedNumber({ value, duration = 0.5 }) {
   const [displayValue, setDisplayValue] = useState(0);
+  const displayRef = useRef(0);
+  displayRef.current = displayValue;
 
   useEffect(() => {
     const startTime = Date.now();
-    const startValue = displayValue;
+    const startValue = displayRef.current;
     const diff = value - startValue;
 
     const animate = () => {

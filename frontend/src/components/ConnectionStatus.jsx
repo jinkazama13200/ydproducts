@@ -53,18 +53,18 @@ export function ConnectionStatus({ status, circuitBreaker, usingCache, lastUpdat
           ? 'rgba(16, 185, 129, 0.15)'
           : className === 'connection-status cache'
           ? 'rgba(234, 179, 8, 0.15)'
-          : 'rgba(148, 163, 184, 0.15)',
+          : 'rgba(138, 143, 152, 0.15)',
         color: className === 'connection-status live'
           ? '#10b981'
           : className === 'connection-status cache'
           ? '#eab308'
-          : '#94a3b8',
+          : '#8a8f98',
         border: `1px solid ${
           className === 'connection-status live'
           ? 'rgba(16, 185, 129, 0.3)'
           : className === 'connection-status cache'
           ? 'rgba(234, 179, 8, 0.3)'
-          : 'rgba(148, 163, 184, 0.3)'
+          : 'rgba(138, 143, 152, 0.3)'
         }`,
         whiteSpace: 'nowrap',
       }}

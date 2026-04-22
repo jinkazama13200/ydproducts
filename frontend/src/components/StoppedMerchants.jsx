@@ -29,7 +29,7 @@ export function StoppedMerchants({ stoppedMerchants, showStopped, setShowStopped
           {showStopped ? 'Hide' : 'Show'}
         </motion.button>
       </div>
-      <p style={{ color: '#64748b', fontSize: 13, margin: '4px 0 8px' }}>Không có product nào chạy trong 10 phút qua</p>
+      <p style={{ color: '#62666d', fontSize: 13, margin: '4px 0 8px' }}>Không có product nào chạy trong 10 phút qua</p>
       <AnimatePresence>
         {showStopped && (
           <motion.div

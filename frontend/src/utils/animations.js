@@ -45,7 +45,7 @@ export const buttonVariants = {
   hover: {
     scale: 1.05,
     y: -2,
-    boxShadow: '0 14px 26px rgba(6,182,212,.24)',
+    boxShadow: '0 14px 26px rgba(94,106,210,.24)',
     transition: { duration: 0.15 }
   },
   tap: {

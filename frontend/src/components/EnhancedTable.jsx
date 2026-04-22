@@ -57,7 +57,7 @@ export function EnhancedTable({
     borderBottom: '1px solid rgba(148,163,184,0.2)',
     position: 'sticky',
     top: 0,
-    background: 'linear-gradient(180deg, #1e293b 0%, #0f172a 100%)',
+    background: 'linear-gradient(180deg, #191a1b 0%, #0f1011 100%)',
     zIndex: 10,
     whiteSpace: 'nowrap'
   });
@@ -84,7 +84,7 @@ export function EnhancedTable({
                              visibleColumns.merchantOrders ? '120px' : '0px',
           alignItems: 'center',
           padding: '10px 8px',
-          background: isChanged ? 'rgba(59, 130, 246, 0.1)' : 'transparent',
+          background: isChanged ? 'rgba(113,112,255,0.08)' : 'transparent',
           transition: 'background 0.3s ease'
         }}
       >
@@ -133,7 +133,7 @@ export function EnhancedTable({
         )}
         
         {visibleColumns.merchantOrders && (
-          <div style={{ padding: '0 8px', color: '#94a3b8' }}>
+          <div style={{ padding: '0 8px', color: '#8a8f98' }}>
             {row.merchantOrders || 0}
           </div>
         )}
@@ -157,11 +157,11 @@ export function EnhancedTable({
           {/* Bulk Actions */}
           {selectedRows.size > 0 && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{ color: '#94a3b8', fontSize: 13 }}>
+              <span style={{ color: '#8a8f98', fontSize: 13 }}>
                 {selectedRows.size} selected
               </span>
               <select 
-                style={{ padding: '6px 10px', borderRadius: 6, border: '1px solid rgba(148,163,184,0.2)', background: '#1e293b', color: '#fff' }}
+                style={{ padding: '6px 10px', borderRadius: 6, border: '1px solid rgba(148,163,184,0.2)', background: '#191a1b', color: '#fff' }}
                 defaultValue=""
                 onChange={(e) => {
                   if (e.target.value === 'export') {
@@ -201,7 +201,7 @@ export function EnhancedTable({
           
           {/* Column Visibility */}
           <select 
-            style={{ padding: '6px 10px', borderRadius: 6, border: '1px solid rgba(148,163,184,0.2)', background: '#1e293b', color: '#fff' }}
+            style={{ padding: '6px 10px', borderRadius: 6, border: '1px solid rgba(148,163,184,0.2)', background: '#191a1b', color: '#fff' }}
             defaultValue=""
             onChange={(e) => {
               if (e.target.value) {
@@ -224,7 +224,7 @@ export function EnhancedTable({
               setPageSize(Number(e.target.value));
               setPage(0);
             }}
-            style={{ padding: '6px 10px', borderRadius: 6, border: '1px solid rgba(148,163,184,0.2)', background: '#1e293b', color: '#fff' }}
+            style={{ padding: '6px 10px', borderRadius: 6, border: '1px solid rgba(148,163,184,0.2)', background: '#191a1b', color: '#fff' }}
           >
             {pageSizeOptions.map(size => (
               <option key={size} value={size}>{size} rows</option>
@@ -242,7 +242,7 @@ export function EnhancedTable({
                            visibleColumns.product ? '1.5fr' : '0px' + ' ' +
                            visibleColumns.ordersInWindow ? '120px' : '0px' + ' ' +
                            visibleColumns.merchantOrders ? '120px' : '0px',
-        background: 'linear-gradient(180deg, #1e293b 0%, #0f172a 100%)',
+        background: 'linear-gradient(180deg, #191a1b 0%, #0f1011 100%)',
         borderRadius: '8px 8px 0 0',
         marginBottom: 8
       }}>
@@ -310,25 +310,25 @@ export function EnhancedTable({
             itemContent={(index) => renderRow(index)}
           />
         ) : (
-          <div style={{ padding: 40, textAlign: 'center', color: '#64748b' }}>
+          <div style={{ padding: 40, textAlign: 'center', color: '#62666d' }}>
             {!hasData ? (
               <>
                 <div style={{ fontSize: 24, marginBottom: 12 }}>⏳</div>
-                <div style={{ fontWeight: 600, color: '#94a3b8', marginBottom: 8 }}>Waiting for data...</div>
+                <div style={{ fontWeight: 600, color: '#8a8f98', marginBottom: 8 }}>Waiting for data...</div>
                 <div style={{ fontSize: 13 }}>Connecting to WebSocket server</div>
               </>
             ) : (query || levelFilter !== 'all') ? (
               <>
                 <div style={{ fontSize: 24, marginBottom: 12 }}>🔍</div>
-                <div style={{ fontWeight: 600, color: '#94a3b8', marginBottom: 8 }}>No products match your filters</div>
-                <button onClick={onClearFilters} style={{ marginTop: 8, padding: '8px 16px', minWidth: 'auto', fontSize: 13, background: 'linear-gradient(135deg, #0891b2, #0e7490)' }}>
+                <div style={{ fontWeight: 600, color: '#8a8f98', marginBottom: 8 }}>No products match your filters</div>
+                <button onClick={onClearFilters} style={{ marginTop: 8, padding: '8px 16px', minWidth: 'auto', fontSize: 13, background: 'linear-gradient(135deg, #5e6ad2, #5e6ad2)' }}>
                   Clear Filters
                 </button>
               </>
             ) : (
               <>
                 <div style={{ fontSize: 24, marginBottom: 12 }}>📭</div>
-                <div style={{ fontWeight: 600, color: '#94a3b8', marginBottom: 8 }}>No running products</div>
+                <div style={{ fontWeight: 600, color: '#8a8f98', marginBottom: 8 }}>No running products</div>
                 <div style={{ fontSize: 13 }}>All products are currently idle</div>
               </>
             )}
@@ -346,7 +346,7 @@ export function EnhancedTable({
           padding: '10px 0',
           borderTop: '1px solid rgba(148,163,184,0.08)'
         }}>
-          <span style={{ color: '#94a3b8', fontSize: 13 }}>
+          <span style={{ color: '#8a8f98', fontSize: 13 }}>
             Showing {startIndex}-{endIndex} of {totalRows} rows
           </span>
           
@@ -358,8 +358,8 @@ export function EnhancedTable({
                 padding: '6px 12px',
                 borderRadius: 6,
                 border: '1px solid rgba(148,163,184,0.2)',
-                background: page === 0 ? '#334155' : '#1e293b',
-                color: page === 0 ? '#64748b' : '#fff',
+                background: page === 0 ? '#28282c' : '#191a1b',
+                color: page === 0 ? '#62666d' : '#fff',
                 cursor: page === 0 ? 'not-allowed' : 'pointer'
               }}
             >
@@ -372,8 +372,8 @@ export function EnhancedTable({
                 padding: '6px 12px',
                 borderRadius: 6,
                 border: '1px solid rgba(148,163,184,0.2)',
-                background: page === 0 ? '#334155' : '#1e293b',
-                color: page === 0 ? '#64748b' : '#fff',
+                background: page === 0 ? '#28282c' : '#191a1b',
+                color: page === 0 ? '#62666d' : '#fff',
                 cursor: page === 0 ? 'not-allowed' : 'pointer'
               }}
             >
@@ -381,7 +381,7 @@ export function EnhancedTable({
             </button>
             <span style={{ 
               padding: '6px 12px', 
-              color: '#94a3b8',
+              color: '#8a8f98',
               fontSize: 13
             }}>
               Page {page + 1} of {totalPages}
@@ -393,8 +393,8 @@ export function EnhancedTable({
                 padding: '6px 12px',
                 borderRadius: 6,
                 border: '1px solid rgba(148,163,184,0.2)',
-                background: page >= totalPages - 1 ? '#334155' : '#1e293b',
-                color: page >= totalPages - 1 ? '#64748b' : '#fff',
+                background: page >= totalPages - 1 ? '#28282c' : '#191a1b',
+                color: page >= totalPages - 1 ? '#62666d' : '#fff',
                 cursor: page >= totalPages - 1 ? 'not-allowed' : 'pointer'
               }}
             >
@@ -407,8 +407,8 @@ export function EnhancedTable({
                 padding: '6px 12px',
                 borderRadius: 6,
                 border: '1px solid rgba(148,163,184,0.2)',
-                background: page >= totalPages - 1 ? '#334155' : '#1e293b',
-                color: page >= totalPages - 1 ? '#64748b' : '#fff',
+                background: page >= totalPages - 1 ? '#28282c' : '#191a1b',
+                color: page >= totalPages - 1 ? '#62666d' : '#fff',
                 cursor: page >= totalPages - 1 ? 'not-allowed' : 'pointer'
               }}
             >

@@ -57,8 +57,8 @@ function ErrorState({
       container: {
         padding: 'var(--space-4, 16px)',
         borderRadius: 'var(--radius-xl, 10px)',
-        background: 'rgba(127, 29, 29, 0.2)',
-        border: '1px solid rgba(239, 68, 68, 0.3)',
+        background: 'rgba(239,68,68,0.08)',
+        border: '1px solid rgba(239,68,68,0.3)',
         display: 'flex',
         alignItems: 'center',
         gap: 'var(--space-3, 12px)',
@@ -72,7 +72,7 @@ function ErrorState({
         padding: 'var(--space-6, 24px)',
         borderRadius: 'var(--radius-4xl, 16px)',
         background: 'linear-gradient(180deg, rgba(127,29,29,0.15), rgba(69,10,10,0.2))',
-        border: '2px solid rgba(239, 68, 68, 0.3)',
+        border: '2px solid rgba(239,68,68,0.3)',
         boxShadow: '0 4px 12px rgba(239, 68, 68, 0.1)'
       },
       message: { color: '#fecaca', fontSize: 'var(--text-base, 14px)', fontWeight: 'var(--font-medium, 500)', marginBottom: 'var(--space-2, 8px)' },
@@ -153,7 +153,7 @@ function EmptyState({
       style={{
         padding: 'var(--space-8, 32px)',
         textAlign: 'center',
-        color: 'var(--color-slate-400, #94a3b8)'
+        color: 'var(--color-slate-400, #8a8f98)'
       }}
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
@@ -166,7 +166,7 @@ function EmptyState({
       
       <h3 style={{ 
         margin: '0 0 var(--space-2, 8px) 0', 
-        color: 'var(--color-slate-300, #cbd5e1)',
+        color: 'var(--color-slate-300, #d0d6e0)',
         fontSize: 'var(--text-lg, 16px)',
         fontWeight: 'var(--font-semibold, 600)'
       }}>
@@ -176,7 +176,7 @@ function EmptyState({
       {message && (
         <p style={{ 
           margin: '0 0 var(--space-4, 16px) 0',
-          color: 'var(--color-slate-400, #94a3b8)',
+          color: 'var(--color-slate-400, #8a8f98)',
           fontSize: 'var(--text-sm, 13px)',
           maxWidth: '400px',
           marginLeft: 'auto',
@@ -190,14 +190,14 @@ function EmptyState({
         <motion.button
           onClick={action.onClick}
           style={{
-            background: action.background || 'linear-gradient(135deg, #0891b2, #0f766e)',
+            background: action.background || 'linear-gradient(135deg, #5e6ad2, #5e6ad2)',
             padding: '12px 24px',
             borderRadius: 'var(--radius-xl, 10px)',
             border: 'none',
             color: 'white',
             fontWeight: 'var(--font-bold, 700)',
             cursor: 'pointer',
-            boxShadow: '0 8px 20px rgba(6,182,212,.18)'
+            boxShadow: '0 8px 20px rgba(94,106,210,.18)'
           }}
           whileHover={{ scale: 1.05, y: -2 }}
           whileTap={{ scale: 0.98 }}
@@ -235,7 +235,7 @@ function LoadingState({
         style={{
           width: '100%',
           height: '4px',
-          background: 'rgba(103,232,249,0.1)',
+          background: 'rgba(255,255,255,0.05)',
           borderRadius: 'var(--radius-full, 9999px)',
           overflow: 'hidden'
         }}
@@ -246,7 +246,7 @@ function LoadingState({
           style={{
             width: '50%',
             height: '100%',
-            background: 'linear-gradient(90deg, #06b6d4, #22d3ee)',
+            background: 'linear-gradient(90deg, #5e6ad2, #22d3ee)',
             borderRadius: 'var(--radius-full, 9999px)'
           }}
           animate={{ x: ['-100%', '200%'] }}
@@ -270,7 +270,7 @@ function LoadingState({
           alignItems: 'center',
           gap: 'var(--space-3, 12px)',
           padding: 'var(--space-6, 24px)',
-          color: 'var(--color-slate-400, #94a3b8)'
+          color: 'var(--color-slate-400, #8a8f98)'
         }}
         role="status"
       >
@@ -278,8 +278,8 @@ function LoadingState({
           style={{
             width: '32px',
             height: '32px',
-            border: '3px solid rgba(103,232,249,0.2)',
-            borderTopColor: '#06b6d4',
+            border: '3px solid rgba(255,255,255,0.08)',
+            borderTopColor: '#5e6ad2',
             borderRadius: '50%'
           }}
           animate={{ rotate: 360 }}
@@ -303,7 +303,7 @@ function LoadingState({
         alignItems: 'center',
         gap: 'var(--space-2, 8px)',
         padding: 'var(--space-3, 12px)',
-        color: 'var(--color-slate-400, #94a3b8)'
+        color: 'var(--color-slate-400, #8a8f98)'
       }}
       role="status"
     >

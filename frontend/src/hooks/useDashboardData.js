@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useWebSocket } from './useWebSocket';
 import { loadConfig, saveConfig } from '../utils/storage';
 
-const API_URL = 'http://localhost:8787/api/running-products';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8787/api/running-products';
 const ALERT_SOUND = `${import.meta.env.BASE_URL}alert.mp3`;
 const INACTIVE_MS = 5 * 60 * 1000;
 
