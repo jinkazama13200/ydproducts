@@ -1,14 +1,10 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 
-/**
- * Skeleton loader component for loading states
- * Uses shimmer animation to indicate loading
- */
-function Skeleton({ 
-  width = '100%', 
-  height = '20px', 
-  className = '', 
+function Skeleton({
+  width = '100%',
+  height = '20px',
+  className = '',
   variant = 'rectangular',
   animationDuration = 1.5
 }) {
@@ -26,19 +22,19 @@ function Skeleton({
   const baseStyles = {
     width,
     height,
-    background: 'linear-gradient(90deg, rgba(255,255,255,0.04) 25%, rgba(255,255,255,0.06) 50%, rgba(255,255,255,0.04) 75%)',
+    background: 'linear-gradient(90deg, #302c2c 25%, #3a3535 50%, #302c2c 75%)',
     backgroundSize: '200% 100%',
-    borderRadius: 'var(--radius-lg, 8px)'
+    borderRadius: '4px'
   };
 
   const variantStyles = {
     rectangular: {},
     circular: { borderRadius: '50%' },
     text: { height: '1em', maxWidth: '80%' },
-    card: { 
-      borderRadius: 'var(--radius-4xl, 16px)',
-      background: 'linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.02))',
-      border: '1px solid rgba(255,255,255,0.08)'
+    card: {
+      borderRadius: '4px',
+      background: 'linear-gradient(180deg, #302c2c, #302c2c)',
+      border: '1px solid rgba(15,0,0,0.12)'
     }
   };
 
@@ -54,21 +50,18 @@ function Skeleton({
   );
 }
 
-/**
- * KPI Card Skeleton - for dashboard metrics
- */
 function SkeletonKPI({ count = 1 }) {
   return (
     <>
       {Array.from({ length: count }).map((_, i) => (
-        <div 
+        <div
           key={i}
           className="kpi-card"
           style={{
-            background: 'linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.02))',
-            border: '1px solid rgba(255,255,255,0.08)',
-            borderRadius: 'var(--radius-3xl, 14px)',
-            padding: 'var(--space-4, 14px)',
+            background: '#302c2c',
+            border: '1px solid rgba(15,0,0,0.12)',
+            borderRadius: '4px',
+            padding: '14px',
             minHeight: '96px',
             display: 'flex',
             flexDirection: 'column',
@@ -84,9 +77,6 @@ function SkeletonKPI({ count = 1 }) {
   );
 }
 
-/**
- * Table Row Skeleton - for data tables
- */
 function SkeletonTableRow({ count = 5, columns = 4 }) {
   return (
     <>
@@ -97,9 +87,9 @@ function SkeletonTableRow({ count = 5, columns = 4 }) {
           style={{
             display: 'flex',
             alignItems: 'center',
-            gap: 'var(--space-3, 10px)',
+            gap: '10px',
             padding: '10px 8px',
-            borderBottom: '1px solid rgba(255,255,255,0.04)'
+            borderBottom: '1px solid rgba(15,0,0,0.12)'
           }}
         >
           {Array.from({ length: columns }).map((_, j) => (
@@ -107,8 +97,8 @@ function SkeletonTableRow({ count = 5, columns = 4 }) {
               key={j}
               style={{
                 height: '20px',
-                background: 'rgba(255,255,255,0.04)',
-                borderRadius: 'var(--radius-sm, 4px)',
+                background: '#3a3535',
+                borderRadius: '4px',
                 flex: j === 1 ? '1.5' : '1'
               }}
             />
@@ -119,9 +109,6 @@ function SkeletonTableRow({ count = 5, columns = 4 }) {
   );
 }
 
-/**
- * Card Grid Skeleton - for card layouts
- */
 function SkeletonCardGrid({ count = 4 }) {
   return (
     <>
@@ -130,16 +117,16 @@ function SkeletonCardGrid({ count = 4 }) {
           key={i}
           className="skeleton-card"
           style={{
-            background: 'linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.02))',
-            border: '1px solid rgba(255,255,255,0.08)',
-            borderRadius: 'var(--radius-4xl, 16px)',
-            padding: 'var(--space-4, 14px)',
+            background: '#302c2c',
+            border: '1px solid rgba(15,0,0,0.12)',
+            borderRadius: '4px',
+            padding: '14px',
             minHeight: '200px'
           }}
         >
-          <Skeleton width="70%" height="20px" style={{ marginBottom: 'var(--space-3, 12px)' }} />
-          <Skeleton width="100%" height="16px" style={{ marginBottom: 'var(--space-2, 8px)' }} />
-          <Skeleton width="100%" height="16px" style={{ marginBottom: 'var(--space-2, 8px)' }} />
+          <Skeleton width="70%" height="20px" style={{ marginBottom: '12px' }} />
+          <Skeleton width="100%" height="16px" style={{ marginBottom: '8px' }} />
+          <Skeleton width="100%" height="16px" style={{ marginBottom: '8px' }} />
           <Skeleton width="80%" height="16px" />
         </div>
       ))}
@@ -147,18 +134,15 @@ function SkeletonCardGrid({ count = 4 }) {
   );
 }
 
-/**
- * Toolbar Skeleton - for filter/search controls
- */
 function SkeletonToolbar() {
   return (
-    <div className="card" style={{ marginBottom: 'var(--space-3, 12px)' }}>
-      <div style={{ display: 'flex', gap: 'var(--space-3, 10px)', marginBottom: 'var(--space-3, 10px)' }}>
+    <div className="card" style={{ marginBottom: '12px' }}>
+      <div style={{ display: 'flex', gap: '10px', marginBottom: '10px' }}>
         <Skeleton width="100%" height="44px" style={{ flex: 1 }} />
         <Skeleton width="100px" height="44px" />
         <Skeleton width="100px" height="44px" />
       </div>
-      <div style={{ display: 'flex', gap: 'var(--space-2, 8px)', flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
         <Skeleton width="150px" height="36px" />
         <Skeleton width="150px" height="36px" />
         <Skeleton width="150px" height="36px" />
@@ -167,11 +151,11 @@ function SkeletonToolbar() {
   );
 }
 
-export { 
-  Skeleton, 
-  SkeletonKPI, 
-  SkeletonTableRow, 
-  SkeletonCardGrid, 
-  SkeletonToolbar 
+export {
+  Skeleton,
+  SkeletonKPI,
+  SkeletonTableRow,
+  SkeletonCardGrid,
+  SkeletonToolbar
 };
 export default Skeleton;
