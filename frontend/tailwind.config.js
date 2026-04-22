@@ -7,19 +7,39 @@ export default {
   theme: {
     extend: {
       colors: {
-        // Primary brand colors
-        primary: {
-          50: '#ecfeff',
-          100: '#cffafe',
-          200: '#a5f3fc',
-          300: '#67e8f9',
-          400: '#22d3ee',
-          500: '#06b6d4',
-          600: '#0891b2',
-          700: '#0e7490',
-          800: '#155e75',
-          900: '#164e63',
-          950: '#083344',
+        // Brand colors (Linear indigo)
+        brand: {
+          50: '#eef0ff',
+          100: '#dce0ff',
+          200: '#b8bfff',
+          300: '#8a9aff',
+          400: '#7170ff',
+          500: '#5e6ad2',
+          600: '#4f55b5',
+          700: '#3d4294',
+          800: '#2d3172',
+          900: '#1e214f',
+          950: '#121337',
+        },
+        // Surface colors (Linear luminance stepping)
+        surface: {
+          marketing: '#08090a',
+          panel: '#0f1011',
+          elevated: '#191a1b',
+          hover: '#28282c',
+        },
+        // Text colors (Linear hierarchy)
+        text: {
+          primary: '#f7f8f8',
+          secondary: '#d0d6e0',
+          tertiary: '#8a8f98',
+          quaternary: '#62666d',
+        },
+        // Border colors
+        border: {
+          subtle: 'rgba(255, 255, 255, 0.05)',
+          standard: 'rgba(255, 255, 255, 0.08)',
+          strong: 'rgba(255, 255, 255, 0.12)',
         },
         // Success colors
         success: {
@@ -63,20 +83,6 @@ export default {
           900: '#7f1d1d',
           950: '#450a0a',
         },
-        // Slate neutral colors
-        slate: {
-          50: '#f8fafc',
-          100: '#f1f5f9',
-          200: '#e2e8f0',
-          300: '#cbd5e1',
-          400: '#94a3b8',
-          500: '#64748b',
-          600: '#475569',
-          700: '#334155',
-          800: '#1e293b',
-          900: '#0f172a',
-          950: '#020617',
-        },
         // Product level colors
         level: {
           hot: {
@@ -87,18 +93,18 @@ export default {
             textBright: '#fecaca',
           },
           warm: {
-            bg: 'rgba(8, 145, 178, 0.10)',
-            bgStrong: 'rgba(8, 145, 178, 0.18)',
-            border: 'rgba(103, 232, 249, 0.20)',
-            text: '#a5f3fc',
-            textBright: '#cffafe',
+            bg: 'rgba(245, 158, 11, 0.10)',
+            bgStrong: 'rgba(245, 158, 11, 0.18)',
+            border: 'rgba(245, 158, 11, 0.28)',
+            text: '#fbbf24',
+            textBright: '#fde68a',
           },
           idle: {
-            bg: 'rgba(148, 163, 184, 0.07)',
-            bgStrong: 'rgba(71, 85, 105, 0.28)',
-            border: 'rgba(148, 163, 184, 0.18)',
-            text: '#cbd5e1',
-            textBright: '#e2e8f0',
+            bg: 'rgba(138, 143, 152, 0.07)',
+            bgStrong: 'rgba(138, 143, 152, 0.14)',
+            border: 'rgba(138, 143, 152, 0.18)',
+            text: '#8a8f98',
+            textBright: '#d0d6e0',
           },
         },
       },
@@ -123,8 +129,8 @@ export default {
         32: '128px',
       },
       fontFamily: {
-        mono: ['JetBrains Mono', 'Fira Code', 'Consolas', 'monospace'],
-        sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'sans-serif'],
+        sans: ['Inter Variable', 'Inter', 'SF Pro Display', '-apple-system', 'system-ui', 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Open Sans', 'Helvetica Neue', 'sans-serif'],
+        mono: ['Berkeley Mono', 'ui-monospace', 'SF Mono', 'Menlo', 'Consolas', 'monospace'],
       },
       fontSize: {
         xs: '11px',
@@ -139,8 +145,8 @@ export default {
       },
       fontWeight: {
         normal: 400,
-        medium: 500,
-        semibold: 600,
+        medium: 510,
+        semibold: 590,
         bold: 700,
         extrabold: 800,
       },
@@ -157,20 +163,20 @@ export default {
         full: '9999px',
       },
       boxShadow: {
-        xs: '0 1px 2px rgba(0, 0, 0, 0.05)',
-        sm: '0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06)',
-        md: '0 4px 6px rgba(0, 0, 0, 0.1), 0 2px 4px rgba(0, 0, 0, 0.06)',
-        lg: '0 10px 15px rgba(0, 0, 0, 0.1), 0 4px 6px rgba(0, 0, 0, 0.05)',
-        xl: '0 20px 25px rgba(0, 0, 0, 0.1), 0 10px 10px rgba(0, 0, 0, 0.04)',
-        '2xl': '0 25px 50px rgba(0, 0, 0, 0.25)',
+        xs: 'rgba(0, 0, 0, 0.03) 0px 1.2px 0px',
+        sm: 'rgba(0, 0, 0, 0.2) 0px 0px 0px 1px',
+        md: 'rgba(0, 0, 0, 0.4) 0px 2px 4px',
+        lg: 'rgba(0, 0, 0, 0.08) 0px 4px 12px',
+        xl: 'rgba(0, 0, 0, 0.4) 0px 8px 24px',
+        '2xl': 'rgba(0, 0, 0, 0) 0px 8px 2px, rgba(0, 0, 0, 0.01) 0px 5px 2px, rgba(0, 0, 0, 0.04) 0px 3px 2px, rgba(0, 0, 0, 0.07) 0px 1px 1px, rgba(0, 0, 0, 0.08) 0px 0px 1px',
         inner: 'inset 0 2px 4px rgba(0, 0, 0, 0.06)',
         glow: {
-          primary: '0 0 20px rgba(6, 182, 212, 0.3)',
+          primary: '0 0 20px rgba(94, 106, 210, 0.3)',
           success: '0 0 20px rgba(16, 185, 129, 0.3)',
           warning: '0 0 20px rgba(245, 158, 11, 0.3)',
           error: '0 0 20px rgba(239, 68, 68, 0.3)',
           hot: '0 0 20px rgba(239, 68, 68, 0.4)',
-          warm: '0 0 20px rgba(6, 182, 212, 0.4)',
+          warm: '0 0 20px rgba(245, 158, 11, 0.4)',
         },
       },
       transitionDuration: {

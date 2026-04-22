@@ -6,9 +6,7 @@ import { ErrorState } from './components/ErrorState';
 import { Skeleton, SkeletonKPI, SkeletonTableRow, SkeletonCardGrid, SkeletonToolbar } from './components/Skeleton';
 import { ConnectionStatus } from './components/ConnectionStatus';
 import { SettingsModal } from './components/SettingsModal';
-import { KPICards } from './components/KPICards';
-import { AlertStrip } from './components/AlertStrip';
-import { StatsGrid } from './components/StatsGrid';
+import { KpiStrip } from './components/KpiStrip';
 import { StoppedMerchants } from './components/StoppedMerchants';
 import { CardView } from './components/CardView';
 import { LevelIcon } from './components/LevelIcon';
@@ -46,7 +44,7 @@ function AppInner() {
   const [internalKeyVisible, setInternalKeyVisible] = useState(false);
   const [showStopped, setShowStopped] = useState(false);
   const [showLevelLabels, setShowLevelLabels] = useState(false);
-  const [toolbarCollapsed, setToolbarCollapsed] = useState(false);
+  const [toolbarCollapsed, setToolbarCollapsed] = useState(true);
   const [advancedFiltersOpen, setAdvancedFiltersOpen] = useState(false);
   const [toasts, setToasts] = useState([]);
   const [focusedIndex, setFocusedIndex] = useState(-1);
@@ -250,26 +248,32 @@ function AppInner() {
     setSettingsOpen(false);
   }, [dashboard.cfg, addToast]);
 
-  // KPI data
-  const kpiData = [
-    { label: `📊 Orders / ${safeRateWindow}m`, value: totalOrders5m || 0, desc: 'Total live flow trong cửa sổ hiện tại', primary: true },
-    { label: '🏢 Active merchants', value: merchantEntries?.length || 0, desc: 'Merchant còn hoạt động gần đây' },
-    { label: '🧩 Active products', value: activeProducts || 0, desc: 'Sản phẩm đang có movement' },
-    { label: '🔥 Hot / Warm', value: `${hotCount || 0} / ${warmCount || 0}`, desc: 'Hot & warm pairs đang chạy' },
-    { label: '🕒 Freshness', value: freshnessSec === null ? '-' : `${freshnessSec}s`, desc: freshnessSec === null ? 'Chưa sync' : 'Từ lần sync thành công gần nhất', accent: true }
+  // KPI strip data - merged KPIs + stats into single compact strip
+  const kpiStripItems = [
+    { icon: '📊', label: 'Orders', value: totalOrders5m || 0, primary: true },
+    { icon: '🏢', label: 'Merchants', value: merchantEntries?.length || 0 },
+    { icon: '🧩', label: 'Products', value: activeProducts || 0 },
+    { icon: '🔥', label: 'Hot/Warm', value: `${hotCount || 0}/${warmCount || 0}` },
+    { icon: '🕒', label: 'Fresh', value: freshnessSec === null ? '-' : `${freshnessSec}s`, accent: true },
+    { icon: '🏆', label: 'Top', value: hottestMerchant === '-' ? '-' : hottestMerchant.length > 12 ? hottestMerchant.slice(0, 12) + '…' : hottestMerchant },
+    { icon: '🔴', label: 'Stopped', value: dashboard.stoppedMerchants.length },
+    { icon: '🧠', label: 'Data', value: partialData ? 'Partial' : 'Full' }
   ];
 
-  const statsData = [
-    { label: '🏆 Merchant hot nhất', value: hottestMerchant },
-    { label: '⚡ Product hot nhất', value: `${hottestProduct.product} (${hottestProduct.ordersInWindow}/${safeRateWindow}m)` },
-    { label: '🔴 Stopped merchants', value: dashboard.stoppedMerchants.length },
-    { label: '🧠 Data status', value: partialData ? 'Partial' : 'Full' }
-  ];
+  // Alert pills - only show when there are changes
+  const alertPills = topAlerts && topAlerts.length > 0
+    ? topAlerts.slice(0, 6).map((row, idx) => ({
+        merchant: row.merchant,
+        product: row.product,
+        orders: row.ordersInWindow || 0,
+        level: row.level || levelClass(row.ordersInWindow || 0)
+      }))
+    : [];
 
   return (
     <>
-      <div className="bg-video" style={{ background: 'linear-gradient(180deg, #0f172a 0%, #111827 100%)' }} />
-      <div className="bg-overlay" style={{ background: 'rgba(2, 6, 23, 0.72)' }} />
+      <div className="bg-video" style={{ background: '#08090a' }} />
+      <div className="bg-overlay" style={{ background: 'rgba(8, 9, 10, 0.72)' }} />
 
       {/* Toast Notifications */}
       <div className="toast-container" role="alert" aria-live="polite" aria-atomic="true">
@@ -294,7 +298,7 @@ function AppInner() {
                     toast.type === 'error' ? 'rgba(252,165,165,0.6)' :
                     toast.type === 'success' ? 'rgba(167,243,208,0.6)' :
                     toast.type === 'warning' ? 'rgba(253,230,138,0.6)' :
-                    'rgba(165,243,252,0.6)'
+                    'rgba(113,112,255,0.6)'
                 }}
               />
             </motion.div>
@@ -319,66 +323,51 @@ function AppInner() {
         wsLastUpdate={dashboard.wsLastUpdate}
       />
 
-      <motion.div className="wrap" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5 }}>
-        {/* Hero */}
+      <motion.div id="main-content" className="wrap" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5 }}>
+        {/* Compact Status Bar */}
         <motion.div
-          className="hero"
-          initial={{ y: -30, opacity: 0 }}
+          className="status-bar card"
+          initial={{ y: -20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
-          transition={{ type: 'spring', stiffness: 200, damping: 20, delay: 0.1 }}
+          transition={{ type: 'spring', stiffness: 300, damping: 25, delay: 0.1 }}
         >
-          <div>
-            <motion.h1 initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.2 }}>
-              ⚡ 易达支付产品状态 Dashboard
-            </motion.h1>
-            <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }}
-              style={{ color: 'var(--muted)', fontWeight: 500, marginTop: 8 }}>
-              Realtime theo merchant • Ưu tiên đọc nhanh • Live via WebSocket
-            </motion.p>
-          </div>
-          <motion.div className="hero-actions" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.3 }}>
-            <motion.span className={`health ${dashboard.health.state}`} role="status"
-              aria-label={`API status: ${dashboard.health.state}`}
-              initial={{ scale: 0 }} animate={{ scale: 1 }}
-              transition={{ type: 'spring', stiffness: 400, damping: 20, delay: 0.4 }}>
-              API {dashboard.health.state.toUpperCase()} {dashboard.health.latencyMs ? `• ${dashboard.health.latencyMs}ms` : ''}
-            </motion.span>
+          <span className="status-title">⚡ 易达支付产品状态</span>
+          <div className="status-badges">
             <ConnectionStatus status={dashboard.wsStatus} circuitBreaker={dashboard.wsCircuitBreaker} usingCache={dashboard.wsUsingCache} lastUpdate={dashboard.wsLastUpdate} />
-            {partialData && (
-              <motion.span className="stale" role="status" initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }}>
-                PARTIAL DATA
-              </motion.span>
+            <span className={`health ${dashboard.health.state}`} role="status"
+              aria-label={`API status: ${dashboard.health.state}`}>
+              {dashboard.health.state.toUpperCase()} {dashboard.health.latencyMs ? `• ${dashboard.health.latencyMs}ms` : ''}
+            </span>
+            {partialData && <span className="stale">PARTIAL</span>}
+            {alertPills.length > 0 && (
+              <div className="alert-pills">
+                {alertPills.map((pill, i) => (
+                  <span key={i} className={`alert-pill ${pill.level}`} title={`${pill.merchant} • ${pill.product} • ${pill.orders}/${safeRateWindow}m`}>
+                    {pill.merchant} • {pill.product} <b>{pill.orders}</b>
+                  </span>
+                ))}
+              </div>
             )}
+          </div>
+          <div className="status-actions">
             <motion.button onClick={dashboard.fetchData} className={dashboard.refreshing ? 'bounce' : ''}
-              aria-label="Refresh data" variants={buttonVariants} whileHover="hover" whileTap="tap">
-              ↻ Refresh
-            </motion.button>
-            <motion.button onClick={exportCsv} aria-label="Export to CSV" variants={buttonVariants} whileHover="hover" whileTap="tap">
-              ⬇ CSV
-            </motion.button>
-            <motion.button onClick={() => setSettingsOpen(true)} aria-label="Open settings" variants={buttonVariants} whileHover="hover" whileTap="tap">
-              ⚙️
-            </motion.button>
+              aria-label="Refresh data" variants={buttonVariants} whileHover="hover" whileTap="tap">↻</motion.button>
+            <motion.button onClick={exportCsv} aria-label="Export to CSV" variants={buttonVariants} whileHover="hover" whileTap="tap">⬇</motion.button>
+            <motion.button onClick={() => setSettingsOpen(true)} aria-label="Open settings" variants={buttonVariants} whileHover="hover" whileTap="tap">⚙️</motion.button>
             <motion.button onClick={toggleFullscreen} aria-label={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'} variants={buttonVariants} whileHover="hover" whileTap="tap">
-              {isFullscreen ? '⬜ Exit' : '🖥 Fullscreen'}
+              {isFullscreen ? '⬜' : '🖥'}
             </motion.button>
-          </motion.div>
+          </div>
         </motion.div>
 
-        {/* KPI Cards */}
-        <KPICards kpis={kpiData} rateWindow={safeRateWindow} />
+        {/* KPI Strip - merged KPIs + stats */}
+        <KpiStrip items={kpiStripItems} />
 
-        {/* Alert Strip */}
-        <AlertStrip topAlerts={topAlerts} rateWindow={safeRateWindow} />
-
-        {/* Stats Grid */}
-        <StatsGrid stats={statsData} />
-
-        {/* Toolbar */}
-        <motion.div className="toolbar card sticky-toolbar" style={{ marginBottom: 12 }} role="search"
+        {/* Compact Toolbar */}
+        <motion.div className="toolbar card sticky-toolbar compact" role="search"
           initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.4 }}>
-          <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 10, flexWrap: 'wrap' }}>
-            <div style={{ position: 'relative', flex: 1, minWidth: 200 }}>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+            <div style={{ position: 'relative', flex: 1, minWidth: 180 }}>
               <input
                 ref={searchInputRef}
                 placeholder="Tìm merchant/product... (Ctrl+K)"
@@ -407,12 +396,12 @@ function AppInner() {
                     {search.searchHistory.map((term, i) => (
                       <motion.div key={`search-${term}-${i}`} className="search-history-item"
                         role="option" initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.03 }}
-                        whileHover={{ backgroundColor: 'rgba(103,232,249,0.1)' }}>
+                        whileHover={{ backgroundColor: 'rgba(255,255,255,0.1)' }}>
                         <span style={{ flex: 1, cursor: 'pointer' }} onClick={() => { filters.setQuery(term); search.setShowSearchHistory(false); }}>
                           🔍 {term}
                         </span>
                         <button onClick={(e) => { e.stopPropagation(); search.removeFromHistory(term); }}
-                          style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', padding: '2px 6px', fontSize: 12, minWidth: 'auto', minHeight: 'auto', boxShadow: 'none' }}>
+                          style={{ background: 'none', border: 'none', color: '#62666d', cursor: 'pointer', padding: '2px 6px', fontSize: 12, minWidth: 'auto', minHeight: 'auto', boxShadow: 'none' }}>
                           ✕
                         </button>
                       </motion.div>
@@ -422,56 +411,55 @@ function AppInner() {
               </AnimatePresence>
             </div>
             <motion.button onClick={() => setToolbarCollapsed(v => !v)}
-              style={{ padding: '10px 14px', whiteSpace: 'nowrap', minWidth: 'auto' }}
+              style={{ padding: '8px 12px', whiteSpace: 'nowrap', minWidth: 'auto', fontSize: 13 }}
               variants={buttonVariants} whileHover="hover" whileTap="tap">
-              {toolbarCollapsed ? '⚙️ Filters' : '✕ Hide'}
-            </motion.button>
-            <motion.button onClick={() => { filters.clearAllFilters(); addToast('🧹 All filters cleared', 'success', 2000); }}
-              style={{ padding: '10px 14px', whiteSpace: 'nowrap', minWidth: 'auto', background: 'linear-gradient(135deg, #ef4444, #dc2626)' }}
-              variants={buttonVariants} whileHover="hover" whileTap="tap">
-              🧹 Clear All
+              {toolbarCollapsed ? '⚙ Filters' : '✕'}
             </motion.button>
           </div>
 
           {!toolbarCollapsed && (
             <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} transition={{ duration: 0.2 }}>
               {/* Quick Filters */}
-              <div className="hero-actions" style={{ justifyContent: 'space-between', flexWrap: 'wrap', gap: 10, marginBottom: 10 }}>
-                <label className="chk" style={{ flex: '1 1 200px' }}>
+              <div className="quick-filters" style={{ marginTop: 8 }}>
+                <label className="chk">
                   <input type="checkbox" checked={filters.activeOnly} onChange={e => filters.setActiveOnly(e.target.checked)} />
-                  Merchant active only
+                  Active only
                 </label>
-                <label className="chk" style={{ flex: '1 1 150px' }}>
+                <label className="chk">
                   Level:&nbsp;
-                  <select value={filters.levelFilter} onChange={e => filters.setLevelFilter(e.target.value)} style={{ minWidth: '100px' }}>
+                  <select value={filters.levelFilter} onChange={e => filters.setLevelFilter(e.target.value)}>
                     <option value="all">All</option>
                     <option value="hot">Hot</option>
                     <option value="warm">Warm</option>
                     <option value="idle">Idle</option>
                   </select>
                 </label>
-                <label className="chk" style={{ flex: '1 1 150px' }}>
+                <label className="chk">
                   Sort:&nbsp;
-                  <select value={filters.sortBy} onChange={e => filters.setSortBy(e.target.value)} style={{ minWidth: '100px' }}>
+                  <select value={filters.sortBy} onChange={e => filters.setSortBy(e.target.value)}>
                     <option value="orders">Orders</option>
                     <option value="name">Name</option>
-                    <option value="products">Product count</option>
+                    <option value="products">Products</option>
                   </select>
                 </label>
-                <label className="chk" style={{ flex: '1 1 150px' }}>
+                <label className="chk">
                   View:&nbsp;
-                  <select value={filters.viewMode} onChange={e => filters.setViewMode(e.target.value)} style={{ minWidth: '100px' }}>
+                  <select value={filters.viewMode} onChange={e => filters.setViewMode(e.target.value)}>
                     <option value="table">Table</option>
                     <option value="cards">Cards</option>
                   </select>
                 </label>
+                <button onClick={() => { filters.clearAllFilters(); addToast('🧹 Cleared', 'success', 1500); }}
+                  style={{ padding: '6px 10px', minWidth: 'auto', fontSize: 12, background: 'rgba(239,68,68,0.1)', borderColor: 'rgba(239,68,68,0.3)', color: '#fca5a5' }}>
+                  🧹 Clear
+                </button>
               </div>
 
               {/* Advanced Filters */}
-              <div className="advanced-filters" style={{ borderTop: '1px solid rgba(103,232,249,0.1)', paddingTop: 10 }}>
+              <div className="advanced-filters" style={{ borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: 8, marginTop: 8 }}>
                 <button onClick={() => setAdvancedFiltersOpen(v => !v)}
-                  style={{ background: 'transparent', color: '#67e8f9', padding: '8px 0', boxShadow: 'none', width: '100%', textAlign: 'left' }}>
-                  {advancedFiltersOpen ? '▼' : '▶'} Advanced Filters
+                  style={{ background: 'transparent', color: '#7170ff', padding: '6px 0', boxShadow: 'none', width: '100%', textAlign: 'left', fontSize: 12 }}>
+                  {advancedFiltersOpen ? '▼' : '▶'} Advanced
                 </button>
                 <AnimatePresence>
                   {advancedFiltersOpen && (
@@ -547,25 +535,25 @@ function AppInner() {
                 </AnimatePresence>
               </div>
 
-              {/* Status Row */}
-              <div className="hero-actions" style={{ justifyContent: 'space-between', flexWrap: 'wrap', marginTop: 10 }}>
-                <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-                  <label className="chk">
+              {/* Compact Status Row */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 8, fontSize: 12, color: '#8a8f98' }}>
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                  <label className="chk" style={{ fontSize: 12 }}>
                     <input type="checkbox" checked={dashboard.cfg.soundEnabled} onChange={e => dashboard.setCfg({ ...dashboard.cfg, soundEnabled: e.target.checked })} />
-                    🔔 Sound
+                    🔔
                   </label>
-                  <label className="chk">
+                  <label className="chk" style={{ fontSize: 12 }}>
                     <input type="checkbox" checked={dashboard.cfg.toastEnabled} onChange={e => dashboard.setCfg({ ...dashboard.cfg, toastEnabled: e.target.checked })} />
-                    💬 Toasts
+                    💬
                   </label>
-                  <label className="chk">
+                  <label className="chk" style={{ fontSize: 12 }}>
                     <input type="checkbox" checked={showLevelLabels} onChange={e => setShowLevelLabels(e.target.checked)} />
-                    🏷 Labels
+                    🏷
                   </label>
                 </div>
-                <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-                  {!!dashboard.lastOkAt && <span className="ok" role="status">Last OK: {new Date(dashboard.lastOkAt).toLocaleTimeString()}</span>}
-                  {dashboard.stale && <span className="stale" role="alert">STALE DATA</span>}
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                  {!!dashboard.lastOkAt && <span className="ok" role="status" style={{ fontSize: 11 }}>OK {new Date(dashboard.lastOkAt).toLocaleTimeString()}</span>}
+                  {dashboard.stale && <span className="stale" role="alert">STALE</span>}
                 </div>
               </div>
             </motion.div>
@@ -608,7 +596,6 @@ function AppInner() {
             rateWindowMinutes={safeRateWindow} changedKeys={dashboard.changedKeys}
             onClearFilters={() => { filters.clearAllFilters(); addToast('🧹 All filters cleared', 'success', 2000); }}
             hasData={!!dashboard.data}
-            LevelIcon={LevelIcon} levelClass={levelClass} levelLabel={levelLabel}
             LevelIcon={LevelIcon} levelClass={levelClass} levelLabel={levelLabel}
           />
         )}

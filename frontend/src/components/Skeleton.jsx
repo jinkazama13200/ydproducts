@@ -26,7 +26,7 @@ function Skeleton({
   const baseStyles = {
     width,
     height,
-    background: 'linear-gradient(90deg, rgba(103,232,249,0.08) 25%, rgba(103,232,249,0.15) 50%, rgba(103,232,249,0.08) 75%)',
+    background: 'linear-gradient(90deg, rgba(255,255,255,0.04) 25%, rgba(255,255,255,0.06) 50%, rgba(255,255,255,0.04) 75%)',
     backgroundSize: '200% 100%',
     borderRadius: 'var(--radius-lg, 8px)'
   };
@@ -37,8 +37,8 @@ function Skeleton({
     text: { height: '1em', maxWidth: '80%' },
     card: { 
       borderRadius: 'var(--radius-4xl, 16px)',
-      background: 'linear-gradient(180deg, rgba(8,20,38,.88), rgba(10,24,44,.78))',
-      border: '1px solid rgba(103,232,249,.14)'
+      background: 'linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.02))',
+      border: '1px solid rgba(255,255,255,0.08)'
     }
   };
 
@@ -65,8 +65,8 @@ function SkeletonKPI({ count = 1 }) {
           key={i}
           className="kpi-card"
           style={{
-            background: 'linear-gradient(180deg, rgba(8,22,40,.9), rgba(12,31,56,.78))',
-            border: '1px solid rgba(103,232,249,.12)',
+            background: 'linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.02))',
+            border: '1px solid rgba(255,255,255,0.08)',
             borderRadius: 'var(--radius-3xl, 14px)',
             padding: 'var(--space-4, 14px)',
             minHeight: '96px',
@@ -99,7 +99,7 @@ function SkeletonTableRow({ count = 5, columns = 4 }) {
             alignItems: 'center',
             gap: 'var(--space-3, 10px)',
             padding: '10px 8px',
-            borderBottom: '1px solid rgba(148,163,184,0.08)'
+            borderBottom: '1px solid rgba(255,255,255,0.04)'
           }}
         >
           {Array.from({ length: columns }).map((_, j) => (
@@ -107,7 +107,7 @@ function SkeletonTableRow({ count = 5, columns = 4 }) {
               key={j}
               style={{
                 height: '20px',
-                background: 'rgba(103,232,249,0.08)',
+                background: 'rgba(255,255,255,0.04)',
                 borderRadius: 'var(--radius-sm, 4px)',
                 flex: j === 1 ? '1.5' : '1'
               }}
@@ -130,8 +130,8 @@ function SkeletonCardGrid({ count = 4 }) {
           key={i}
           className="skeleton-card"
           style={{
-            background: 'linear-gradient(180deg, rgba(8,20,38,.88), rgba(10,24,44,.78))',
-            border: '1px solid rgba(103,232,249,.14)',
+            background: 'linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.02))',
+            border: '1px solid rgba(255,255,255,0.08)',
             borderRadius: 'var(--radius-4xl, 16px)',
             padding: 'var(--space-4, 14px)',
             minHeight: '200px'

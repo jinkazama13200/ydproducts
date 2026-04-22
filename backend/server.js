@@ -10,7 +10,7 @@ const { Server: SocketIOServer } = require('socket.io');
 require('dotenv').config();
 
 const app = express();
-app.use(cors());
+app.disable('x-powered-by');
 
 // Compression middleware (before routes)
 app.use(compression());
@@ -23,13 +23,32 @@ function toNumber(value, fallback) {
 const PORT = toNumber(process.env.PORT, 8787);
 const PRODUCT_API_BASE = process.env.PRODUCT_API_BASE || 'https://yida-new-mgr-omnxqgbi-api.yznba.com';
 const PRODUCT_ORIGIN = process.env.PRODUCT_ORIGIN || 'https://yida-new-mgr-y5cf7h6r.yznba.com';
-const PRODUCT_TOKEN = process.env.PRODUCT_TOKEN || '';
-const MAX_PAGES = Number(process.env.MAX_PAGES || 20);
-const RATE_WINDOW_MINUTES = Number(process.env.RATE_WINDOW_MINUTES || 5);
-const CACHE_TTL_MS = Number(process.env.CACHE_TTL_MS || 15000);
-const UPSTREAM_TIMEOUT_MS = Number(process.env.UPSTREAM_TIMEOUT_MS || 15000);
-const UPSTREAM_RETRIES = Number(process.env.UPSTREAM_RETRIES || 1);
-const REQUESTS_PER_MINUTE = Number(process.env.REQUESTS_PER_MINUTE || 120);
+const PRODUCT_TOKEN = String(process.env.PRODUCT_TOKEN || '').trim();
+const INTERNAL_API_KEY = String(process.env.INTERNAL_API_KEY || '').trim();
+const ALLOWED_ORIGINS = String(process.env.ALLOWED_ORIGINS || '').split(',').map(s => s.trim()).filter(Boolean);
+const NODE_ENV = process.env.NODE_ENV || 'development';
+const MAX_PAGES = Math.max(1, toNumber(process.env.MAX_PAGES, 20));
+const RATE_WINDOW_MINUTES = Math.max(1, toNumber(process.env.RATE_WINDOW_MINUTES, 5));
+const CACHE_TTL_MS = Math.max(1000, toNumber(process.env.CACHE_TTL_MS, 15000));
+const UPSTREAM_TIMEOUT_MS = Math.max(1000, toNumber(process.env.UPSTREAM_TIMEOUT_MS, 15000));
+const UPSTREAM_RETRIES = Math.max(0, toNumber(process.env.UPSTREAM_RETRIES, 1));
+const REQUESTS_PER_MINUTE = Math.max(1, toNumber(process.env.REQUESTS_PER_MINUTE, 120));
+const ENABLE_DEBUG_UPSTREAM = String(process.env.ENABLE_DEBUG_UPSTREAM || (NODE_ENV !== 'production' ? 'true' : 'false')).toLowerCase() === 'true';
+
+// === NEW: Persistent Cache Configuration ===
+const CACHE_DIR = process.env.CACHE_DIR || '/tmp/yd-cache';
+const CACHE_MAX_AGE_MS = Math.max(1000, toNumber(process.env.CACHE_MAX_AGE_MS, 300000)); // 5 minutes default
+
+// === NEW: Circuit Breaker Configuration ===
+const CIRCUIT_BREAKER_FAILURE_THRESHOLD = Math.max(1, toNumber(process.env.CIRCUIT_BREAKER_FAILURE_THRESHOLD, 5));
+const CIRCUIT_BREAKER_RESET_TIMEOUT_MS = Math.max(1000, toNumber(process.env.CIRCUIT_BREAKER_RESET_TIMEOUT_MS, 180000)); // 3 minutes default
+
+// === NEW: Retry Configuration ===
+const MAX_RETRIES = Math.max(1, toNumber(process.env.MAX_RETRIES, 5));
+const BASE_RETRY_DELAY_MS = Math.max(100, toNumber(process.env.BASE_RETRY_DELAY_MS, 300));
+
+// === NEW: Timeout for paginated calls ===
+const PAGINATED_CALL_TIMEOUT_MS = Math.max(5000, toNumber(process.env.PAGINATED_CALL_TIMEOUT_MS, 45000)); // 45 seconds default
 
 // === Real-time Push Configuration ===
 const PUSH_INTERVAL_MS = Math.max(2000, toNumber(process.env.PUSH_INTERVAL_MS, 5000)); // Auto-poll interval (default 5s)
@@ -38,10 +57,13 @@ const PUSH_ENABLED = String(process.env.PUSH_ENABLED || 'true').toLowerCase() ==
 const runtimeState = {
   startedAt: Date.now(),
   lastSuccessAt: null,
-  lastError: null
+  lastError: null,
+  circuitBreakerState: 'CLOSED', // CLOSED, OPEN, HALF_OPEN
+  circuitBreakerFailures: 0,
+  circuitBreakerLastFailureAt: null
 };
 
-const cache = new Map(); // key -> { expiresAt, payload }
+const cache = new Map(); // In-memory cache: key -> { expiresAt, payload }
 const ipBuckets = new Map(); // ip -> { windowStart, count }
 
 // === NEW: Ensure cache directory exists ===
@@ -193,8 +215,6 @@ function log(level, event, meta = {}) {
   }));
 }
 
-function pad(n) { return String(n).padStart(2, '0'); }
-
 function getTzParts(date = new Date(), timeZone = 'Asia/Singapore') {
   const parts = new Intl.DateTimeFormat('en-US', {
     timeZone,
@@ -245,25 +265,120 @@ function tokenId(token) {
   return `${token.slice(0, 6)}...${token.slice(-4)}`;
 }
 
-async function getWithRetry(url, options = {}) {
-  let lastErr;
-  const attempts = Math.max(1, UPSTREAM_RETRIES + 1);
+function tokenCacheKey(token) {
+  return crypto.createHash('sha256').update(token).digest('hex');
+}
 
-  for (let i = 0; i < attempts; i++) {
+function cleanupExpiredCache() {
+  const now = Date.now();
+  for (const [key, entry] of cache.entries()) {
+    if (!entry || entry.expiresAt <= now) cache.delete(key);
+  }
+}
+
+function cleanupExpiredRateBuckets() {
+  const now = Date.now();
+  for (const [ip, bucket] of ipBuckets.entries()) {
+    if (!bucket || now - bucket.windowStart >= 60000) ipBuckets.delete(ip);
+  }
+}
+
+function buildSuccess(data, meta = {}) {
+  return { success: true, data, meta };
+}
+
+function buildErrorBody(code, message, retryable = false, extra = {}) {
+  return {
+    success: false,
+    error: {
+      code,
+      message,
+      retryable,
+      ...extra
+    }
+  };
+}
+
+// === UPDATED: Enhanced retry with exponential backoff ===
+async function getWithRetry(url, options = {}, isPaginated = false) {
+  let lastErr;
+  const timeout = isPaginated ? PAGINATED_CALL_TIMEOUT_MS : (options.timeout || UPSTREAM_TIMEOUT_MS);
+  
+  // Check circuit breaker before attempting
+  if (!circuitBreakerCanCall()) {
+    const timeSinceFailure = Date.now() - (runtimeState.circuitBreakerLastFailureAt || 0);
+    const retryAfterMs = CIRCUIT_BREAKER_RESET_TIMEOUT_MS - timeSinceFailure;
+    log('warn', 'circuit_breaker_blocking_call', { 
+      url, 
+      state: runtimeState.circuitBreakerState,
+      retryAfterMs,
+      failures: runtimeState.circuitBreakerFailures 
+    });
+    throw new Error(`Circuit breaker OPEN. Retry after ${Math.round(retryAfterMs / 1000)}s`);
+  }
+
+  for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
     try {
-      return await axios.get(url, {
+      const response = await axios.get(url, {
         ...options,
-        timeout: options.timeout || UPSTREAM_TIMEOUT_MS
+        timeout
       });
+      
+      // Success - reset circuit breaker
+      circuitBreakerRecordSuccess();
+      return response;
+      
     } catch (e) {
       lastErr = e;
       const status = Number(e?.response?.status || 0);
-      const retryable = !status || (status >= 500 && status < 600) || e.code === 'ECONNABORTED';
-      if (status === 401 || !retryable || i === attempts - 1) throw e;
-      await new Promise(r => setTimeout(r, 300 * (i + 1)));
+      const retryable = !status || (status >= 500 && status < 600) || e.code === 'ECONNABORTED' || e.code === 'ETIMEDOUT';
+      
+      // Enhanced error logging
+      log('warn', 'api_call_attempt_failed', {
+        url,
+        attempt: attempt + 1,
+        maxRetries: MAX_RETRIES,
+        status,
+        code: e.code,
+        message: e.message,
+        retryable,
+        isPaginated,
+        timeout,
+        stack: e.stack
+      });
+      
+      // Don't retry on 401 or non-retryable errors
+      if (status === 401 || !retryable) {
+        circuitBreakerRecordFailure();
+        throw e;
+      }
+      
+      // Last attempt - record failure and throw
+      if (attempt === MAX_RETRIES - 1) {
+        circuitBreakerRecordFailure();
+        log('error', 'api_call_all_retries_exhausted', {
+          url,
+          attempts: MAX_RETRIES,
+          finalError: e.message,
+          code: e.code,
+          status
+        });
+        throw e;
+      }
+      
+      // Exponential backoff: 300ms, 600ms, 1200ms, 2400ms, ...
+      const delayMs = BASE_RETRY_DELAY_MS * Math.pow(2, attempt);
+      log('info', 'api_call_retrying', { 
+        attempt: attempt + 1, 
+        maxRetries: MAX_RETRIES, 
+        delayMs,
+        url 
+      });
+      await new Promise(r => setTimeout(r, delayMs));
     }
   }
 
+  circuitBreakerRecordFailure();
   throw lastErr;
 }
 
@@ -273,7 +388,7 @@ async function fetchMchProductStatAll(token) {
   const first = await getWithRetry(`${PRODUCT_API_BASE}/api/mchProductStat`, {
     params: { pageNumber: 1, pageSize, createdStart: start, createdEnd: end },
     headers: headers(token)
-  });
+  }, true); // isPaginated = true
 
   if (first?.data?.code !== 0) throw new Error('mchProductStat failed');
 
@@ -286,10 +401,11 @@ async function fetchMchProductStatAll(token) {
     const res = await getWithRetry(`${PRODUCT_API_BASE}/api/mchProductStat`, {
       params: { pageNumber: page, pageSize, createdStart: start, createdEnd: end },
       headers: headers(token)
-    });
+    }, true); // isPaginated = true
     records = records.concat(res?.data?.data?.records || []);
   }
-  return records;
+
+  return { records, totalPages, pagesFetched: pagesToFetch, truncated: totalPages > pagesToFetch };
 }
 
 async function fetchRateMap(token) {
@@ -304,15 +420,16 @@ async function fetchRateMap(token) {
       createdEnd: fmtInSg(end)
     },
     headers: headers(token)
-  });
+  }, true); // isPaginated = true
 
   const map = new Map();
   const records = res?.data?.data?.records || [];
+  const total = Number(res?.data?.data?.total || records.length);
   for (const r of records) {
     const k = `${r.mchName || 'UNKNOWN'}|||${r.productName || 'UNKNOWN'}`;
     map.set(k, (map.get(k) || 0) + 1);
   }
-  return map;
+  return { map, truncated: total > records.length, fetchedCount: records.length, total };
 }
 
 function buildApiError(e) {
@@ -320,27 +437,35 @@ function buildApiError(e) {
   if (status === 401) {
     return {
       status: 401,
-      body: { code: 'UPSTREAM_401', message: 'Yida token expired/invalid (401). Vui lòng lấy token mới rồi thử lại.', retryable: false }
+      body: buildErrorBody('UPSTREAM_401', 'Yida token expired/invalid (401). Vui lòng lấy token mới rồi thử lại.', false)
     };
   }
 
-  if (e?.code === 'ECONNABORTED') {
+  if (e?.code === 'ECONNABORTED' || e?.code === 'ETIMEDOUT') {
     return {
       status: 504,
-      body: { code: 'UPSTREAM_TIMEOUT', message: 'Upstream timeout', retryable: true }
+      body: buildErrorBody('UPSTREAM_TIMEOUT', 'Upstream timeout', true, { 
+        code: e.code,
+        timeout: e.config?.timeout 
+      })
     };
   }
 
   if (status >= 500 && status < 600) {
     return {
       status: 502,
-      body: { code: 'UPSTREAM_5XX', message: 'Upstream server error', retryable: true }
+      body: buildErrorBody('UPSTREAM_5XX', 'Upstream server error', true, {
+        upstreamStatus: status
+      })
     };
   }
 
   return {
     status: status >= 400 && status < 600 ? status : 500,
-    body: { code: 'INTERNAL_ERROR', message: e?.message || 'Unknown error', retryable: false }
+    body: buildErrorBody('INTERNAL_ERROR', e?.message || 'Unknown error', false, {
+      code: e.code,
+      stack: e.stack
+    })
   };
 }
 
@@ -374,21 +499,41 @@ app.use((req, res, next) => {
 
   b.count += 1;
   if (b.count > REQUESTS_PER_MINUTE) {
-    return res.status(429).json({ code: 'RATE_LIMITED', message: 'Too many requests', retryable: true });
+    return res.status(429).json(buildErrorBody('RATE_LIMITED', 'Too many requests', true));
+  }
+  return next();
+});
+
+app.use('/api', (req, res, next) => {
+  if (!INTERNAL_API_KEY) return next();
+  const provided = String(req.header('x-internal-key') || '').trim();
+  if (!provided || provided !== INTERNAL_API_KEY) {
+    return res.status(401).json(buildErrorBody('UNAUTHORIZED', 'Missing or invalid internal API key', false));
   }
   return next();
 });
 
 app.get('/health', (_, res) => {
   const now = Date.now();
-  res.json({
+  return res.json(buildSuccess({
     ok: true,
     uptimeSec: Math.floor((now - runtimeState.startedAt) / 1000),
     cacheTtlMs: CACHE_TTL_MS,
+    cacheMaxAgeMs: CACHE_MAX_AGE_MS,
     cacheEntries: cache.size,
+    cacheDir: CACHE_DIR,
+    circuitBreakerState: runtimeState.circuitBreakerState,
+    circuitBreakerFailures: runtimeState.circuitBreakerFailures,
     lastSuccessAt: runtimeState.lastSuccessAt,
-    lastError: runtimeState.lastError
-  });
+    lastError: runtimeState.lastError,
+    config: {
+      maxRetries: MAX_RETRIES,
+      baseRetryDelayMs: BASE_RETRY_DELAY_MS,
+      paginatedCallTimeoutMs: PAGINATED_CALL_TIMEOUT_MS,
+      circuitBreakerThreshold: CIRCUIT_BREAKER_FAILURE_THRESHOLD,
+      circuitBreakerResetTimeoutMs: CIRCUIT_BREAKER_RESET_TIMEOUT_MS
+    }
+  }));
 });
 
 app.get('/api/debug/upstream', async (req, res) => {
@@ -406,7 +551,7 @@ app.get('/api/debug/upstream', async (req, res) => {
 
   const token = String(req.header('x-product-token') || PRODUCT_TOKEN || '').trim();
   if (!token) {
-    return res.status(400).json({ code: 'MISSING_TOKEN', message: 'Missing token', retryable: false });
+    return res.status(400).json(buildErrorBody('MISSING_TOKEN', 'Missing token', false));
   }
 
   const t0 = Date.now();
@@ -418,62 +563,80 @@ app.get('/api/debug/upstream', async (req, res) => {
       headers: headers(token)
     });
 
-    return res.json({
-      ok: true,
-      reqId,
-      ms: Date.now() - t0,
+    return res.json(buildSuccess({
       upstreamStatus: Number(test?.status || 200),
       upstreamCode: Number(test?.data?.code),
       tokenHint: tokenId(token),
       dateRange: { start, end },
       sampleCount: Array.isArray(test?.data?.data?.records) ? test.data.data.records.length : 0
-    });
+    }, {
+      reqId: req.reqId,
+      ms: Date.now() - t0
+    }));
   } catch (e) {
     const apiErr = buildApiError(e);
     return res.status(apiErr.status).json({
-      ok: false,
-      reqId,
-      ms: Date.now() - t0,
-      tokenHint: tokenId(token),
-      upstreamStatus: Number(e?.response?.status || 0),
-      code: apiErr.body.code,
-      message: apiErr.body.message,
-      retryable: apiErr.body.retryable
+      ...apiErr.body,
+      meta: {
+        reqId: req.reqId,
+        ms: Date.now() - t0,
+        tokenHint: tokenId(token),
+        upstreamStatus: Number(e?.response?.status || 0)
+      }
     });
   }
 });
 
 app.get('/api/running-products', async (req, res) => {
-  const reqId = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   const t0 = Date.now();
 
   try {
-    const runtimeToken = String(req.query.token || req.header('x-product-token') || PRODUCT_TOKEN || '').trim();
+    const runtimeToken = String(req.header('x-product-token') || PRODUCT_TOKEN || '').trim();
     if (!runtimeToken) {
-      return res.status(400).json({ code: 'MISSING_TOKEN', message: 'Missing PRODUCT_TOKEN', retryable: false });
+      return res.status(400).json(buildErrorBody('MISSING_TOKEN', 'Missing PRODUCT_TOKEN', false));
     }
 
-    const cacheKey = runtimeToken;
-    const hit = cache.get(cacheKey);
+    const cacheKey = tokenCacheKey(runtimeToken);
+    
+    // === UPDATED: Check persistent cache first ===
+    let hit = cache.get(cacheKey);
+    let cacheSource = 'memory';
+    
+    if (!hit || hit.expiresAt <= Date.now()) {
+      // Try persistent cache
+      const persistentHit = readPersistentCache(cacheKey);
+      if (persistentHit) {
+        hit = persistentHit;
+        cacheSource = 'persistent';
+        // Restore to memory cache
+        cache.set(cacheKey, hit);
+      }
+    }
+    
     if (hit && hit.expiresAt > Date.now()) {
-      log('info', 'running_products_cache_hit', { reqId, token: tokenId(runtimeToken), ms: Date.now() - t0 });
+      log('info', 'running_products_cache_hit', { 
+        reqId: req.reqId, 
+        token: tokenId(runtimeToken), 
+        ms: Date.now() - t0,
+        source: cacheSource 
+      });
       return res.json(hit.payload);
     }
 
-    const [statRecords, rateMap] = await Promise.all([
+    const [statResult, rateResult] = await Promise.all([
       fetchMchProductStatAll(runtimeToken),
       fetchRateMap(runtimeToken)
     ]);
 
-    const running = statRecords
-      .filter(r => Number(r.totalOrderCount || 0) > 0 && Number(r.orderSuccessCount || 0) > 0)
+    const running = statResult.records
+      .filter(r => Number(r.totalOrderCount || 0) > 0)
       .map(r => ({
         merchant: r.mchName || 'UNKNOWN',
         product: r.productName || 'UNKNOWN',
         totalOrderCount: Number(r.totalOrderCount || 0),
         orderSuccessCount: Number(r.orderSuccessCount || 0),
         totalAmount: Number(r.totalAmount || 0),
-        ordersInWindow: rateMap.get(`${r.mchName || 'UNKNOWN'}|||${r.productName || 'UNKNOWN'}`) || 0
+        ordersInWindow: rateResult.map.get(`${r.mchName || 'UNKNOWN'}|||${r.productName || 'UNKNOWN'}`) || 0
       }));
 
     const grouped = {};
@@ -486,15 +649,28 @@ app.get('/api/running-products', async (req, res) => {
       grouped[k].sort((a, b) => b.ordersInWindow - a.ordersInWindow || b.totalAmount - a.totalAmount);
     }
 
-    const payload = {
+    const payload = buildSuccess({
       fetchedAt: new Date().toISOString(),
       rateWindowMinutes: RATE_WINDOW_MINUTES,
       merchantCount: Object.keys(grouped).length,
       pairCount: running.length,
       data: grouped
-    };
+    }, {
+      reqId: req.reqId,
+      statPagesFetched: statResult.pagesFetched,
+      statTotalPages: statResult.totalPages,
+      statTruncated: statResult.truncated,
+      payOrderFetchedCount: rateResult.fetchedCount,
+      payOrderTotal: rateResult.total,
+      payOrderTruncated: rateResult.truncated,
+      ms: Date.now() - t0
+    });
 
-    cache.set(cacheKey, { expiresAt: Date.now() + CACHE_TTL_MS, payload });
+    // === UPDATED: Write to both memory and persistent cache ===
+    const cacheTtl = CACHE_MAX_AGE_MS; // Use the longer TTL for persistent cache
+    cache.set(cacheKey, { expiresAt: Date.now() + cacheTtl, payload });
+    writePersistentCache(cacheKey, payload, cacheTtl);
+    
     runtimeState.lastSuccessAt = new Date().toISOString();
     runtimeState.lastError = null;
 
@@ -502,11 +678,12 @@ app.get('/api/running-products', async (req, res) => {
     emitDataUpdate(payload);
 
     log('info', 'running_products_ok', {
-      reqId,
+      reqId: req.reqId,
       token: tokenId(runtimeToken),
-      merchants: payload.merchantCount,
-      pairs: payload.pairCount,
-      ms: Date.now() - t0
+      merchants: payload.data.merchantCount,
+      pairs: payload.data.pairCount,
+      ms: Date.now() - t0,
+      cacheWritten: true
     });
 
     return res.json(payload);
@@ -514,24 +691,66 @@ app.get('/api/running-products', async (req, res) => {
     const apiErr = buildApiError(e);
     runtimeState.lastError = {
       at: new Date().toISOString(),
-      code: apiErr.body.code,
-      message: apiErr.body.message
+      code: apiErr.body.error?.code,
+      message: apiErr.body.error?.message,
+      circuitBreakerState: runtimeState.circuitBreakerState
     };
 
+    // === NEW: Try to return cached data on failure ===
+    const cacheKey = tokenCacheKey(String(req.header('x-product-token') || PRODUCT_TOKEN || '').trim());
+    const cachedData = readPersistentCache(cacheKey) || cache.get(cacheKey);
+    
+    if (cachedData && cachedData.expiresAt > Date.now()) {
+      log('warn', 'running_products_fallback_to_cache', {
+        reqId: req.reqId,
+        error: apiErr.body.error?.message,
+        cacheAge: Date.now() - cachedData.cachedAt,
+        circuitBreakerState: runtimeState.circuitBreakerState
+      });
+      
+      return res.json({
+        ...cachedData.payload,
+        meta: {
+          ...cachedData.payload.meta,
+          warning: 'Serving cached data due to API failure',
+          cachedAt: new Date(cachedData.cachedAt).toISOString(),
+          error: apiErr.body.error
+        }
+      });
+    }
+
     log('error', 'running_products_error', {
-      reqId,
-      code: apiErr.body.code,
+      reqId: req.reqId,
+      code: apiErr.body.error?.code,
       status: apiErr.status,
-      message: apiErr.body.message,
-      ms: Date.now() - t0
+      message: apiErr.body.error?.message,
+      ms: Date.now() - t0,
+      circuitBreakerState: runtimeState.circuitBreakerState,
+      failures: runtimeState.circuitBreakerFailures,
+      stack: e.stack
     });
 
-    return res.status(apiErr.status).json(apiErr.body);
+    return res.status(apiErr.status).json({
+      ...apiErr.body,
+      meta: {
+        reqId: req.reqId,
+        ms: Date.now() - t0,
+        circuitBreakerState: runtimeState.circuitBreakerState
+      }
+    });
   }
 });
 
-app.listen(PORT, () => {
-  log('info', 'backend_started', { port: PORT });
+app.use((err, req, res, next) => {
+  if (res.headersSent) return next(err);
+  const status = err?.message === 'Not allowed by CORS' ? 403 : 500;
+  log('error', 'unhandled_error', {
+    reqId: req?.reqId,
+    status,
+    message: err?.message || 'Unknown error',
+    stack: err?.stack
+  });
+  return res.status(status).json(buildErrorBody(status === 403 ? 'CORS_FORBIDDEN' : 'INTERNAL_ERROR', err?.message || 'Unknown error', false));
 });
 
 // === WebSocket (Socket.IO) Setup ===

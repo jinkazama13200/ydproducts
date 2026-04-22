@@ -1,5 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
+import { HOT_VIDEO, WARM_VIDEO, IDLE_VIDEO } from '../utils/levels';
 
 export function LevelIcon({ n, showLabel = false, videoEnabled = false }) {
   const level = n >= 10 ? 'hot' : n >= 3 ? 'warm' : 'idle';
@@ -23,10 +24,10 @@ export function LevelIcon({ n, showLabel = false, videoEnabled = false }) {
 
   // Video mode: try video, fallback to emoji on error
   const videoSrc = level === 'hot'
-    ? '/hot.mp4'
+    ? HOT_VIDEO
     : level === 'warm'
-    ? '/warm.mp4'
-    : '/idle.mp4';
+    ? WARM_VIDEO
+    : IDLE_VIDEO;
 
   return (
     <VideoOrEmoji videoSrc={videoSrc} emoji={emoji} level={level} showLabel={showLabel} />
