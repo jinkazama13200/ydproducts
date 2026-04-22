@@ -272,9 +272,6 @@ function AppInner() {
 
   return (
     <>
-      <div className="bg-video" style={{ background: '#08090a' }} />
-      <div className="bg-overlay" style={{ background: 'rgba(8, 9, 10, 0.72)' }} />
-
       {/* Toast Notifications */}
       <div className="toast-container" role="alert" aria-live="polite" aria-atomic="true">
         <AnimatePresence>
@@ -294,11 +291,11 @@ function AppInner() {
                 className="toast-progress"
                 style={{
                   animationDuration: `${toast.duration || 4000}ms`,
-                  background: toast.type === 'hot' ? 'rgba(252,165,165,0.6)' :
-                    toast.type === 'error' ? 'rgba(252,165,165,0.6)' :
-                    toast.type === 'success' ? 'rgba(167,243,208,0.6)' :
-                    toast.type === 'warning' ? 'rgba(253,230,138,0.6)' :
-                    'rgba(113,112,255,0.6)'
+                  background: toast.type === 'hot' ? 'rgba(255,59,48,0.6)' :
+                    toast.type === 'error' ? 'rgba(255,59,48,0.6)' :
+                    toast.type === 'success' ? 'rgba(48,209,88,0.6)' :
+                    toast.type === 'warning' ? 'rgba(255,159,10,0.6)' :
+                    'rgba(0,122,255,0.6)'
                 }}
               />
             </motion.div>
@@ -396,12 +393,12 @@ function AppInner() {
                     {search.searchHistory.map((term, i) => (
                       <motion.div key={`search-${term}-${i}`} className="search-history-item"
                         role="option" initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.03 }}
-                        whileHover={{ backgroundColor: 'rgba(255,255,255,0.1)' }}>
+                        whileHover={{ backgroundColor: 'rgba(253,252,252,0.1)' }}>
                         <span style={{ flex: 1, cursor: 'pointer' }} onClick={() => { filters.setQuery(term); search.setShowSearchHistory(false); }}>
                           🔍 {term}
                         </span>
                         <button onClick={(e) => { e.stopPropagation(); search.removeFromHistory(term); }}
-                          style={{ background: 'none', border: 'none', color: '#62666d', cursor: 'pointer', padding: '2px 6px', fontSize: 12, minWidth: 'auto', minHeight: 'auto', boxShadow: 'none' }}>
+                          style={{ background: 'none', border: 'none', color: '#6e6e73', cursor: 'pointer', padding: '2px 6px', fontSize: 12, minWidth: 'auto', minHeight: 'auto', boxShadow: 'none' }}>
                           ✕
                         </button>
                       </motion.div>
@@ -450,15 +447,15 @@ function AppInner() {
                   </select>
                 </label>
                 <button onClick={() => { filters.clearAllFilters(); addToast('🧹 Cleared', 'success', 1500); }}
-                  style={{ padding: '6px 10px', minWidth: 'auto', fontSize: 12, background: 'rgba(239,68,68,0.1)', borderColor: 'rgba(239,68,68,0.3)', color: '#fca5a5' }}>
+                  style={{ padding: '6px 10px', minWidth: 'auto', fontSize: 12, background: 'rgba(255,59,48,0.1)', borderColor: 'rgba(255,59,48,0.3)', color: '#ff3b30' }}>
                   🧹 Clear
                 </button>
               </div>
 
               {/* Advanced Filters */}
-              <div className="advanced-filters" style={{ borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: 8, marginTop: 8 }}>
+              <div className="advanced-filters" style={{ borderTop: '1px solid rgba(15,0,0,0.12)', paddingTop: 8, marginTop: 8 }}>
                 <button onClick={() => setAdvancedFiltersOpen(v => !v)}
-                  style={{ background: 'transparent', color: '#7170ff', padding: '6px 0', boxShadow: 'none', width: '100%', textAlign: 'left', fontSize: 12 }}>
+                  style={{ background: 'transparent', color: '#007aff', padding: '6px 0', boxShadow: 'none', width: '100%', textAlign: 'left', fontSize: 12 }}>
                   {advancedFiltersOpen ? '▼' : '▶'} Advanced
                 </button>
                 <AnimatePresence>
@@ -494,14 +491,14 @@ function AppInner() {
                                 {preset.name}
                               </motion.button>
                               <motion.button onClick={() => presetManager.deletePreset(i)}
-                                style={{ padding: '6px 8px', minWidth: 'auto', fontSize: 12, background: '#ef4444' }}
+                                style={{ padding: '6px 8px', minWidth: 'auto', fontSize: 12, background: '#ff3b30' }}
                                 variants={buttonVariants} whileHover="hover" whileTap="tap" aria-label={`Delete ${preset.name}`}>
                                 ✕
                               </motion.button>
                             </motion.div>
                           ))}
                           <motion.button onClick={() => presetManager.setShowPresets(v => !v)}
-                            style={{ padding: '6px 12px', minWidth: 'auto', fontSize: 12, background: 'linear-gradient(135deg, #10b981, #059669)' }}
+                            style={{ padding: '6px 12px', minWidth: 'auto', fontSize: 12, background: '#30d158' }}
                             variants={buttonVariants} whileHover="hover" whileTap="tap">
                             + Save Preset
                           </motion.button>
@@ -536,7 +533,7 @@ function AppInner() {
               </div>
 
               {/* Compact Status Row */}
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 8, fontSize: 12, color: '#8a8f98' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 8, fontSize: 12, color: '#6e6e73' }}>
                 <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                   <label className="chk" style={{ fontSize: 12 }}>
                     <input type="checkbox" checked={dashboard.cfg.soundEnabled} onChange={e => dashboard.setCfg({ ...dashboard.cfg, soundEnabled: e.target.checked })} />

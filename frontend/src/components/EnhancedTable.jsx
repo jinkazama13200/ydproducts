@@ -54,10 +54,10 @@ export function EnhancedTable({
     padding: '10px 8px',
     cursor: 'pointer',
     userSelect: 'none',
-    borderBottom: '1px solid rgba(148,163,184,0.2)',
+    borderBottom: '1px solid rgba(15,0,0,0.12)',
     position: 'sticky',
     top: 0,
-    background: 'linear-gradient(180deg, #191a1b 0%, #0f1011 100%)',
+    background: '#302c2c',
     zIndex: 10,
     whiteSpace: 'nowrap'
   });
@@ -74,7 +74,7 @@ export function EnhancedTable({
         key={rowKey}
         className={`table-row ${isChanged ? 'changed' : ''} ${isSelected ? 'selected' : ''}`}
         style={{
-          borderBottom: '1px solid rgba(148,163,184,0.08)',
+          borderBottom: '1px solid rgba(15,0,0,0.12)',
           display: 'grid',
           gridTemplateColumns: visibleColumns.level ? '40px' : '0px' + ' ' +
                              visibleColumns.checkbox ? '40px' : '0px' + ' ' +
@@ -84,7 +84,7 @@ export function EnhancedTable({
                              visibleColumns.merchantOrders ? '120px' : '0px',
           alignItems: 'center',
           padding: '10px 8px',
-          background: isChanged ? 'rgba(113,112,255,0.08)' : 'transparent',
+          background: isChanged ? 'rgba(0,122,255,0.08)' : 'transparent',
           transition: 'background 0.3s ease'
         }}
       >
@@ -133,7 +133,7 @@ export function EnhancedTable({
         )}
         
         {visibleColumns.merchantOrders && (
-          <div style={{ padding: '0 8px', color: '#8a8f98' }}>
+          <div style={{ padding: '0 8px', color: '#9a9898' }}>
             {row.merchantOrders || 0}
           </div>
         )}
@@ -157,11 +157,11 @@ export function EnhancedTable({
           {/* Bulk Actions */}
           {selectedRows.size > 0 && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{ color: '#8a8f98', fontSize: 13 }}>
+              <span style={{ color: '#9a9898', fontSize: 13 }}>
                 {selectedRows.size} selected
               </span>
               <select 
-                style={{ padding: '6px 10px', borderRadius: 6, border: '1px solid rgba(148,163,184,0.2)', background: '#191a1b', color: '#fff' }}
+                style={{ padding: '6px 10px', borderRadius: 4, border: '1px solid rgba(15,0,0,0.12)', background: '#201d1d', color: '#fdfcfc' }}
                 defaultValue=""
                 onChange={(e) => {
                   if (e.target.value === 'export') {
@@ -201,7 +201,7 @@ export function EnhancedTable({
           
           {/* Column Visibility */}
           <select 
-            style={{ padding: '6px 10px', borderRadius: 6, border: '1px solid rgba(148,163,184,0.2)', background: '#191a1b', color: '#fff' }}
+            style={{ padding: '6px 10px', borderRadius: 4, border: '1px solid rgba(15,0,0,0.12)', background: '#201d1d', color: '#fdfcfc' }}
             defaultValue=""
             onChange={(e) => {
               if (e.target.value) {
@@ -224,7 +224,7 @@ export function EnhancedTable({
               setPageSize(Number(e.target.value));
               setPage(0);
             }}
-            style={{ padding: '6px 10px', borderRadius: 6, border: '1px solid rgba(148,163,184,0.2)', background: '#191a1b', color: '#fff' }}
+            style={{ padding: '6px 10px', borderRadius: 4, border: '1px solid rgba(15,0,0,0.12)', background: '#201d1d', color: '#fdfcfc' }}
           >
             {pageSizeOptions.map(size => (
               <option key={size} value={size}>{size} rows</option>
@@ -242,8 +242,8 @@ export function EnhancedTable({
                            visibleColumns.product ? '1.5fr' : '0px' + ' ' +
                            visibleColumns.ordersInWindow ? '120px' : '0px' + ' ' +
                            visibleColumns.merchantOrders ? '120px' : '0px',
-        background: 'linear-gradient(180deg, #191a1b 0%, #0f1011 100%)',
-        borderRadius: '8px 8px 0 0',
+        background: '#302c2c',
+        borderRadius: '4px 4px 0 0',
         marginBottom: 8
       }}>
         {visibleColumns.checkbox && (
@@ -299,8 +299,8 @@ export function EnhancedTable({
       
       {/* Virtual Scrolling Table Body */}
       <div style={{ 
-        border: '1px solid rgba(148,163,184,0.08)',
-        borderRadius: '0 0 8px 8px',
+        border: '1px solid rgba(15,0,0,0.12)',
+        borderRadius: '0 0 4px 4px',
         overflow: 'hidden'
       }}>
         {rows.length > 0 ? (
@@ -310,25 +310,25 @@ export function EnhancedTable({
             itemContent={(index) => renderRow(index)}
           />
         ) : (
-          <div style={{ padding: 40, textAlign: 'center', color: '#62666d' }}>
+          <div style={{ padding: 40, textAlign: 'center', color: '#9a9898' }}>
             {!hasData ? (
               <>
                 <div style={{ fontSize: 24, marginBottom: 12 }}>⏳</div>
-                <div style={{ fontWeight: 600, color: '#8a8f98', marginBottom: 8 }}>Waiting for data...</div>
+                <div style={{ fontWeight: 600, color: '#9a9898', marginBottom: 8 }}>Waiting for data...</div>
                 <div style={{ fontSize: 13 }}>Connecting to WebSocket server</div>
               </>
             ) : (query || levelFilter !== 'all') ? (
               <>
                 <div style={{ fontSize: 24, marginBottom: 12 }}>🔍</div>
-                <div style={{ fontWeight: 600, color: '#8a8f98', marginBottom: 8 }}>No products match your filters</div>
-                <button onClick={onClearFilters} style={{ marginTop: 8, padding: '8px 16px', minWidth: 'auto', fontSize: 13, background: 'linear-gradient(135deg, #5e6ad2, #5e6ad2)' }}>
+                <div style={{ fontWeight: 600, color: '#9a9898', marginBottom: 8 }}>No products match your filters</div>
+                <button onClick={onClearFilters} style={{ marginTop: 8, padding: '8px 16px', minWidth: 'auto', fontSize: 13, background: '#007aff' }}>
                   Clear Filters
                 </button>
               </>
             ) : (
               <>
                 <div style={{ fontSize: 24, marginBottom: 12 }}>📭</div>
-                <div style={{ fontWeight: 600, color: '#8a8f98', marginBottom: 8 }}>No running products</div>
+                <div style={{ fontWeight: 600, color: '#9a9898', marginBottom: 8 }}>No running products</div>
                 <div style={{ fontSize: 13 }}>All products are currently idle</div>
               </>
             )}
@@ -344,9 +344,9 @@ export function EnhancedTable({
           alignItems: 'center', 
           marginTop: 12,
           padding: '10px 0',
-          borderTop: '1px solid rgba(148,163,184,0.08)'
+          borderTop: '1px solid rgba(15,0,0,0.12)'
         }}>
-          <span style={{ color: '#8a8f98', fontSize: 13 }}>
+          <span style={{ color: '#9a9898', fontSize: 13 }}>
             Showing {startIndex}-{endIndex} of {totalRows} rows
           </span>
           
@@ -356,10 +356,10 @@ export function EnhancedTable({
               disabled={page === 0}
               style={{
                 padding: '6px 12px',
-                borderRadius: 6,
-                border: '1px solid rgba(148,163,184,0.2)',
-                background: page === 0 ? '#28282c' : '#191a1b',
-                color: page === 0 ? '#62666d' : '#fff',
+                borderRadius: 4,
+                border: '1px solid rgba(15,0,0,0.12)',
+                background: page === 0 ? '#3a3535' : '#201d1d',
+                color: page === 0 ? '#6e6e73' : '#fff',
                 cursor: page === 0 ? 'not-allowed' : 'pointer'
               }}
             >
@@ -370,10 +370,10 @@ export function EnhancedTable({
               disabled={page === 0}
               style={{
                 padding: '6px 12px',
-                borderRadius: 6,
-                border: '1px solid rgba(148,163,184,0.2)',
-                background: page === 0 ? '#28282c' : '#191a1b',
-                color: page === 0 ? '#62666d' : '#fff',
+                borderRadius: 4,
+                border: '1px solid rgba(15,0,0,0.12)',
+                background: page === 0 ? '#3a3535' : '#201d1d',
+                color: page === 0 ? '#6e6e73' : '#fff',
                 cursor: page === 0 ? 'not-allowed' : 'pointer'
               }}
             >
@@ -381,7 +381,7 @@ export function EnhancedTable({
             </button>
             <span style={{ 
               padding: '6px 12px', 
-              color: '#8a8f98',
+              color: '#9a9898',
               fontSize: 13
             }}>
               Page {page + 1} of {totalPages}
@@ -391,10 +391,10 @@ export function EnhancedTable({
               disabled={page >= totalPages - 1}
               style={{
                 padding: '6px 12px',
-                borderRadius: 6,
-                border: '1px solid rgba(148,163,184,0.2)',
-                background: page >= totalPages - 1 ? '#28282c' : '#191a1b',
-                color: page >= totalPages - 1 ? '#62666d' : '#fff',
+                borderRadius: 4,
+                border: '1px solid rgba(15,0,0,0.12)',
+                background: page >= totalPages - 1 ? '#3a3535' : '#201d1d',
+                color: page >= totalPages - 1 ? '#6e6e73' : '#fff',
                 cursor: page >= totalPages - 1 ? 'not-allowed' : 'pointer'
               }}
             >
@@ -405,10 +405,10 @@ export function EnhancedTable({
               disabled={page >= totalPages - 1}
               style={{
                 padding: '6px 12px',
-                borderRadius: 6,
-                border: '1px solid rgba(148,163,184,0.2)',
-                background: page >= totalPages - 1 ? '#28282c' : '#191a1b',
-                color: page >= totalPages - 1 ? '#62666d' : '#fff',
+                borderRadius: 4,
+                border: '1px solid rgba(15,0,0,0.12)',
+                background: page >= totalPages - 1 ? '#3a3535' : '#201d1d',
+                color: page >= totalPages - 1 ? '#6e6e73' : '#fff',
                 cursor: page >= totalPages - 1 ? 'not-allowed' : 'pointer'
               }}
             >

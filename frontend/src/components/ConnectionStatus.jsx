@@ -50,21 +50,21 @@ export function ConnectionStatus({ status, circuitBreaker, usingCache, lastUpdat
         fontSize: 12,
         fontWeight: 600,
         background: className === 'connection-status live'
-          ? 'rgba(16, 185, 129, 0.15)'
+          ? 'rgba(48, 209, 88, 0.15)'
           : className === 'connection-status cache'
-          ? 'rgba(234, 179, 8, 0.15)'
-          : 'rgba(138, 143, 152, 0.15)',
+          ? 'rgba(255, 159, 10, 0.15)'
+          : 'rgba(154, 152, 152, 0.15)',
         color: className === 'connection-status live'
-          ? '#10b981'
+          ? '#30d158'
           : className === 'connection-status cache'
-          ? '#eab308'
-          : '#8a8f98',
+          ? '#ff9f0a'
+          : '#9a9898',
         border: `1px solid ${
           className === 'connection-status live'
-          ? 'rgba(16, 185, 129, 0.3)'
+          ? 'rgba(48, 209, 88, 0.3)'
           : className === 'connection-status cache'
-          ? 'rgba(234, 179, 8, 0.3)'
-          : 'rgba(138, 143, 152, 0.3)'
+          ? 'rgba(255, 159, 10, 0.3)'
+          : 'rgba(154, 152, 152, 0.3)'
         }`,
         whiteSpace: 'nowrap',
       }}

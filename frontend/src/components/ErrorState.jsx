@@ -1,28 +1,24 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 
-/**
- * ErrorState component - User-friendly error display with retry
- * Replaces generic error messages with actionable UI
- */
-function ErrorState({ 
-  error, 
-  onRetry, 
+function ErrorState({
+  error,
+  onRetry,
   lastSuccessfulFetch,
   className = '',
-  variant = 'inline' // 'inline' | 'fullscreen' | 'card'
+  variant = 'inline'
 }) {
   const formatTimeAgo = (timestamp) => {
     if (!timestamp) return 'Never';
-    
+
     const now = Date.now();
     const then = new Date(timestamp).getTime();
     const diff = now - then;
-    
+
     const seconds = Math.floor(diff / 1000);
     const minutes = Math.floor(seconds / 60);
     const hours = Math.floor(minutes / 60);
-    
+
     if (seconds < 60) return 'Just now';
     if (minutes < 60) return `${minutes}m ago`;
     if (hours < 24) return `${hours}h ago`;
@@ -55,42 +51,40 @@ function ErrorState({
   const variants = {
     inline: {
       container: {
-        padding: 'var(--space-4, 16px)',
-        borderRadius: 'var(--radius-xl, 10px)',
-        background: 'rgba(239,68,68,0.08)',
-        border: '1px solid rgba(239,68,68,0.3)',
+        padding: '16px',
+        borderRadius: '4px',
+        background: 'rgba(255,59,48,0.08)',
+        border: '1px solid rgba(255,59,48,0.3)',
         display: 'flex',
         alignItems: 'center',
-        gap: 'var(--space-3, 12px)',
+        gap: '12px',
         flexWrap: 'wrap'
       },
-      message: { flex: '1 1 300px', color: '#fecaca', fontSize: 'var(--text-sm, 13px)', fontWeight: 'var(--font-medium, 500)' },
-      button: { padding: '8px 16px', minHeight: 'auto', background: 'linear-gradient(135deg, #dc2626, #b91c1c)' }
+      message: { flex: '1 1 300px', color: '#ff6b60', fontSize: '13px', fontWeight: '500' },
+      button: { padding: '4px 20px', minHeight: 'auto', background: '#ff3b30' }
     },
     card: {
       container: {
-        padding: 'var(--space-6, 24px)',
-        borderRadius: 'var(--radius-4xl, 16px)',
-        background: 'linear-gradient(180deg, rgba(127,29,29,0.15), rgba(69,10,10,0.2))',
-        border: '2px solid rgba(239,68,68,0.3)',
-        boxShadow: '0 4px 12px rgba(239, 68, 68, 0.1)'
+        padding: '24px',
+        borderRadius: '4px',
+        background: '#302c2c',
+        border: '1px solid rgba(255,59,48,0.3)'
       },
-      message: { color: '#fecaca', fontSize: 'var(--text-base, 14px)', fontWeight: 'var(--font-medium, 500)', marginBottom: 'var(--space-2, 8px)' },
-      button: { padding: '12px 24px', background: 'linear-gradient(135deg, #dc2626, #b91c1c)' }
+      message: { color: '#fdfcfc', fontSize: '14px', fontWeight: '500', marginBottom: '8px' },
+      button: { padding: '4px 20px', background: '#ff3b30' }
     },
     fullscreen: {
       container: {
-        padding: 'var(--space-8, 32px)',
-        borderRadius: 'var(--radius-4xl, 16px)',
-        background: 'linear-gradient(135deg, rgba(30,10,10,.92), rgba(20,8,8,.94))',
-        border: '2px solid rgba(239,68,68,.4)',
-        boxShadow: '0 20px 44px rgba(239,68,68,.16)',
+        padding: '32px',
+        borderRadius: '4px',
+        background: '#302c2c',
+        border: '1px solid rgba(255,59,48,0.4)',
         maxWidth: '520px',
         margin: '80px auto',
         textAlign: 'center'
       },
-      message: { color: '#fecaca', fontSize: 'var(--text-lg, 16px)', marginBottom: 'var(--space-4, 16px)' },
-      button: { padding: '14px 28px', background: 'linear-gradient(135deg, #dc2626, #b91c1c)', boxShadow: '0 8px 20px rgba(220,38,38,.24)' }
+      message: { color: '#fdfcfc', fontSize: '16px', marginBottom: '16px' },
+      button: { padding: '4px 20px', background: '#ff3b30' }
     }
   };
 
@@ -109,19 +103,19 @@ function ErrorState({
       <span style={{ fontSize: '24px' }} role="img" aria-label="Error">
         {icon}
       </span>
-      
+
       <div style={{ flex: 1 }}>
         <p style={currentVariant.message}>
           {errorText}
         </p>
-        
+
         {lastSuccessfulFetch && (
-          <small style={{ color: '#fca5a5', fontSize: 'var(--text-xs, 11px)', display: 'block', marginTop: '4px' }}>
+          <small style={{ color: '#9a9898', fontSize: '11px', display: 'block', marginTop: '4px' }}>
             Last successful fetch: {formatTimeAgo(lastSuccessfulFetch)}
           </small>
         )}
       </div>
-      
+
       {onRetry && (
         <motion.button
           onClick={onRetry}
@@ -137,10 +131,7 @@ function ErrorState({
   );
 }
 
-/**
- * EmptyState component - For when there's no data (not an error)
- */
-function EmptyState({ 
+function EmptyState({
   title = 'No data available',
   message,
   icon = '📭',
@@ -151,33 +142,33 @@ function EmptyState({
     <motion.div
       className={`empty-state ${className}`}
       style={{
-        padding: 'var(--space-8, 32px)',
+        padding: '32px',
         textAlign: 'center',
-        color: 'var(--color-slate-400, #8a8f98)'
+        color: '#9a9898'
       }}
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
       transition={{ duration: 0.3 }}
       role="status"
     >
-      <div style={{ fontSize: '48px', marginBottom: 'var(--space-4, 16px)' }} role="img" aria-label={icon}>
+      <div style={{ fontSize: '48px', marginBottom: '16px' }} role="img" aria-label={icon}>
         {icon}
       </div>
-      
-      <h3 style={{ 
-        margin: '0 0 var(--space-2, 8px) 0', 
-        color: 'var(--color-slate-300, #d0d6e0)',
-        fontSize: 'var(--text-lg, 16px)',
-        fontWeight: 'var(--font-semibold, 600)'
+
+      <h3 style={{
+        margin: '0 0 8px 0',
+        color: '#fdfcfc',
+        fontSize: '16px',
+        fontWeight: '700'
       }}>
         {title}
       </h3>
-      
+
       {message && (
-        <p style={{ 
-          margin: '0 0 var(--space-4, 16px) 0',
-          color: 'var(--color-slate-400, #8a8f98)',
-          fontSize: 'var(--text-sm, 13px)',
+        <p style={{
+          margin: '0 0 16px 0',
+          color: '#9a9898',
+          fontSize: '13px',
           maxWidth: '400px',
           marginLeft: 'auto',
           marginRight: 'auto'
@@ -185,19 +176,18 @@ function EmptyState({
           {message}
         </p>
       )}
-      
+
       {action && (
         <motion.button
           onClick={action.onClick}
           style={{
-            background: action.background || 'linear-gradient(135deg, #5e6ad2, #5e6ad2)',
-            padding: '12px 24px',
-            borderRadius: 'var(--radius-xl, 10px)',
+            background: action.background || '#007aff',
+            padding: '4px 20px',
+            borderRadius: '4px',
             border: 'none',
-            color: 'white',
-            fontWeight: 'var(--font-bold, 700)',
-            cursor: 'pointer',
-            boxShadow: '0 8px 20px rgba(94,106,210,.18)'
+            color: '#fdfcfc',
+            fontWeight: '500',
+            cursor: 'pointer'
           }}
           whileHover={{ scale: 1.05, y: -2 }}
           whileTap={{ scale: 0.98 }}
@@ -209,12 +199,9 @@ function EmptyState({
   );
 }
 
-/**
- * LoadingState component - For loading indicators
- */
-function LoadingState({ 
+function LoadingState({
   message = 'Loading...',
-  variant = 'dots', // 'dots' | 'bar' | 'spinner'
+  variant = 'dots',
   className = ''
 }) {
   const dotVariants = {
@@ -235,8 +222,8 @@ function LoadingState({
         style={{
           width: '100%',
           height: '4px',
-          background: 'rgba(255,255,255,0.05)',
-          borderRadius: 'var(--radius-full, 9999px)',
+          background: 'rgba(253,252,252,0.05)',
+          borderRadius: '9999px',
           overflow: 'hidden'
         }}
         role="progressbar"
@@ -246,8 +233,8 @@ function LoadingState({
           style={{
             width: '50%',
             height: '100%',
-            background: 'linear-gradient(90deg, #5e6ad2, #22d3ee)',
-            borderRadius: 'var(--radius-full, 9999px)'
+            background: '#007aff',
+            borderRadius: '9999px'
           }}
           animate={{ x: ['-100%', '200%'] }}
           transition={{
@@ -268,9 +255,9 @@ function LoadingState({
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
-          gap: 'var(--space-3, 12px)',
-          padding: 'var(--space-6, 24px)',
-          color: 'var(--color-slate-400, #8a8f98)'
+          gap: '12px',
+          padding: '24px',
+          color: '#9a9898'
         }}
         role="status"
       >
@@ -278,8 +265,8 @@ function LoadingState({
           style={{
             width: '32px',
             height: '32px',
-            border: '3px solid rgba(255,255,255,0.08)',
-            borderTopColor: '#5e6ad2',
+            border: '3px solid rgba(15,0,0,0.12)',
+            borderTopColor: '#007aff',
             borderRadius: '50%'
           }}
           animate={{ rotate: 360 }}
@@ -289,21 +276,20 @@ function LoadingState({
             ease: 'linear'
           }}
         />
-        {message && <span style={{ fontSize: 'var(--text-sm, 13px)' }}>{message}</span>}
+        {message && <span style={{ fontSize: '13px' }}>{message}</span>}
       </div>
     );
   }
 
-  // Default: dots variant
   return (
     <div
       className={`loading-state dots ${className}`}
       style={{
         display: 'flex',
         alignItems: 'center',
-        gap: 'var(--space-2, 8px)',
-        padding: 'var(--space-3, 12px)',
-        color: 'var(--color-slate-400, #8a8f98)'
+        gap: '8px',
+        padding: '12px',
+        color: '#9a9898'
       }}
       role="status"
     >
@@ -314,14 +300,14 @@ function LoadingState({
             width: '8px',
             height: '8px',
             borderRadius: '50%',
-            background: 'var(--color-primary-400, #22d3ee)'
+            background: '#007aff'
           }}
           variants={dotVariants}
           animate="animate"
           transition={{ delay: i * 0.15 }}
         />
       ))}
-      {message && <span style={{ fontSize: 'var(--text-sm, 13px)', marginLeft: 'var(--space-2, 8px)' }}>{message}</span>}
+      {message && <span style={{ fontSize: '13px', marginLeft: '8px' }}>{message}</span>}
     </div>
   );
 }
