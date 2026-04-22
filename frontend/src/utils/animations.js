@@ -36,21 +36,17 @@ export const cardVariants = {
   hover: {
     scale: 1.02,
     y: -4,
-    borderColor: 'rgba(0, 122, 255, 0.3)',
-    transition: { duration: 0.15 }
+    transition: { duration: 0.2 }
   }
 };
 
 export const buttonVariants = {
   hover: {
-    scale: 1.05,
-    y: -2,
-    borderColor: 'rgba(0, 122, 255, 0.3)',
-    transition: { duration: 0.1 }
+    scale: 1.02,
+    transition: { duration: 0.15 }
   },
   tap: {
     scale: 0.98,
-    y: 1,
     transition: { duration: 0.1 }
   }
 };

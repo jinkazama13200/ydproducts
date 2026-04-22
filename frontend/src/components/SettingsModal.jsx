@@ -156,34 +156,34 @@ export function SettingsModal({
                   <input type="checkbox" checked={cfg.videoIconsEnabled} onChange={e => setCfg({ ...cfg, videoIconsEnabled: e.target.checked })} />
                   🎬 Video Level Icons
                 </label>
-                <small style={{ color: '#6e6e73', fontSize: 11, marginTop: 4, display: 'block' }}>Enable animated video icons for levels (uses more bandwidth)</small>
+                <small style={{ color: 'rgba(0,0,0,.48)', fontSize: 11, marginTop: 4, display: 'block' }}>Enable animated video icons for levels (uses more bandwidth)</small>
               </motion.div>
 
               <motion.div className="settings-section" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
                 <h3>📡 Connection</h3>
                 <div style={{ display: 'grid', gap: 8, fontSize: 13 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ color: '#9a9898' }}>WebSocket</span>
-                    <span style={{ color: wsStatus === 'connected' ? '#30d158' : '#ff3b30', fontWeight: 700 }}>
+                    <span style={{ color: 'rgba(0,0,0,.48)' }}>WebSocket</span>
+                    <span style={{ color: wsStatus === 'connected' ? '#30d158' : '#ff3b30', fontWeight: 600 }}>
                       {wsStatus === 'connected' ? '🟢 Connected' : '🔴 Disconnected'}
                     </span>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ color: '#9a9898' }}>Circuit Breaker</span>
-                    <span style={{ color: wsCircuitBreaker === 'CLOSED' ? '#30d158' : wsCircuitBreaker === 'OPEN' ? '#ff3b30' : '#ff9f0a', fontWeight: 700 }}>
+                    <span style={{ color: 'rgba(0,0,0,.48)' }}>Circuit Breaker</span>
+                    <span style={{ color: wsCircuitBreaker === 'CLOSED' ? '#30d158' : wsCircuitBreaker === 'OPEN' ? '#ff3b30' : '#ff9f0a', fontWeight: 600 }}>
                       {wsCircuitBreaker}
                     </span>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ color: '#9a9898' }}>Using Cache</span>
-                    <span style={{ color: wsUsingCache ? '#ff9f0a' : '#30d158', fontWeight: 700 }}>
+                    <span style={{ color: 'rgba(0,0,0,.48)' }}>Using Cache</span>
+                    <span style={{ color: wsUsingCache ? '#ff9f0a' : '#30d158', fontWeight: 600 }}>
                       {wsUsingCache ? 'Yes' : 'No'}
                     </span>
                   </div>
                   {wsLastUpdate && (
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span style={{ color: '#9a9898' }}>Last Update</span>
-                      <span style={{ color: '#fdfcfc', fontWeight: 600 }}>
+                      <span style={{ color: 'rgba(0,0,0,.48)' }}>Last Update</span>
+                      <span style={{ color: '#1d1d1f', fontWeight: 600 }}>
                         {new Date(wsLastUpdate).toLocaleTimeString()}
                       </span>
                     </div>

@@ -38,7 +38,7 @@ export function KPICards({ kpis, rateWindow }) {
               initial={{ opacity: 0, scale: 0.5 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: 0.2 + i * 0.05, type: 'spring', stiffness: 300 }}
-              style={{ fontSize: 24, color: '#fdfcfc', lineHeight: 1.2 }}
+              style={{ fontSize: 24, color: '#1d1d1f', lineHeight: 1.2 }}
             >
               {typeof kpi.value === 'number' ? <AnimatedNumber value={kpi.value} /> : kpi.value}
             </motion.b>
@@ -47,7 +47,7 @@ export function KPICards({ kpis, rateWindow }) {
             initial={{ opacity: 0 }}
             animate={{ opacity: 0.78 }}
             transition={{ delay: 0.3 + i * 0.05 }}
-            style={{ display: 'block', color: '#007aff', fontSize: 11, marginTop: 6, lineHeight: 1.35 }}
+            style={{ display: 'block', color: '#0071e3', fontSize: 11, marginTop: 6, lineHeight: 1.35 }}
           >
             {kpi.desc}
           </motion.small>

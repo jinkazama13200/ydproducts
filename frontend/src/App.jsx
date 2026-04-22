@@ -295,7 +295,7 @@ function AppInner() {
                     toast.type === 'error' ? 'rgba(255,59,48,0.6)' :
                     toast.type === 'success' ? 'rgba(48,209,88,0.6)' :
                     toast.type === 'warning' ? 'rgba(255,159,10,0.6)' :
-                    'rgba(0,122,255,0.6)'
+                    'rgba(0,113,227,0.6)'
                 }}
               />
             </motion.div>
@@ -393,12 +393,12 @@ function AppInner() {
                     {search.searchHistory.map((term, i) => (
                       <motion.div key={`search-${term}-${i}`} className="search-history-item"
                         role="option" initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.03 }}
-                        whileHover={{ backgroundColor: 'rgba(253,252,252,0.1)' }}>
+                        whileHover={{ backgroundColor: 'rgba(0,0,0,0.04)' }}>
                         <span style={{ flex: 1, cursor: 'pointer' }} onClick={() => { filters.setQuery(term); search.setShowSearchHistory(false); }}>
                           🔍 {term}
                         </span>
                         <button onClick={(e) => { e.stopPropagation(); search.removeFromHistory(term); }}
-                          style={{ background: 'none', border: 'none', color: '#6e6e73', cursor: 'pointer', padding: '2px 6px', fontSize: 12, minWidth: 'auto', minHeight: 'auto', boxShadow: 'none' }}>
+                          style={{ background: 'none', border: 'none', color: 'rgba(0,0,0,.48)', cursor: 'pointer', padding: '2px 6px', fontSize: 12, minWidth: 'auto', minHeight: 'auto', boxShadow: 'none' }}>
                           ✕
                         </button>
                       </motion.div>
@@ -447,15 +447,15 @@ function AppInner() {
                   </select>
                 </label>
                 <button onClick={() => { filters.clearAllFilters(); addToast('🧹 Cleared', 'success', 1500); }}
-                  style={{ padding: '6px 10px', minWidth: 'auto', fontSize: 12, background: 'rgba(255,59,48,0.1)', borderColor: 'rgba(255,59,48,0.3)', color: '#ff3b30' }}>
+                  style={{ padding: '6px 10px', minWidth: 'auto', fontSize: 12, background: 'rgba(255,59,48,0.1)', borderColor: 'rgba(255,59,48,0.3)', color: '#ff3b30', borderRadius: 980 }}>
                   🧹 Clear
                 </button>
               </div>
 
               {/* Advanced Filters */}
-              <div className="advanced-filters" style={{ borderTop: '1px solid rgba(15,0,0,0.12)', paddingTop: 8, marginTop: 8 }}>
+              <div className="advanced-filters" style={{ borderTop: '1px solid rgba(0,0,0,0.08)', paddingTop: 8, marginTop: 8 }}>
                 <button onClick={() => setAdvancedFiltersOpen(v => !v)}
-                  style={{ background: 'transparent', color: '#007aff', padding: '6px 0', boxShadow: 'none', width: '100%', textAlign: 'left', fontSize: 12 }}>
+                  style={{ background: 'transparent', color: '#0071e3', padding: '6px 0', boxShadow: 'none', width: '100%', textAlign: 'left', fontSize: 12 }}>
                   {advancedFiltersOpen ? '▼' : '▶'} Advanced
                 </button>
                 <AnimatePresence>
@@ -533,7 +533,7 @@ function AppInner() {
               </div>
 
               {/* Compact Status Row */}
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 8, fontSize: 12, color: '#6e6e73' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 8, fontSize: 12, color: 'rgba(0,0,0,.48)' }}>
                 <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                   <label className="chk" style={{ fontSize: 12 }}>
                     <input type="checkbox" checked={dashboard.cfg.soundEnabled} onChange={e => dashboard.setCfg({ ...dashboard.cfg, soundEnabled: e.target.checked })} />

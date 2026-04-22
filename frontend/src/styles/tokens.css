@@ -1,50 +1,50 @@
 /**
  * Design Tokens - CSS Custom Properties
- * OpenCode Design System — Dark Terminal Theme
+ * Apple HIG Design System
  *
  * Usage: var(--token-name)
  */
 
 :root {
   /* ============================================
-     COLOR PALETTE - OpenCode Design System
+     COLOR PALETTE - Apple HIG Design System
      ============================================ */
 
-  /* Brand Colors (Accent Blue - Apple HIG) */
-  --color-brand-50: #e5f0ff;
-  --color-brand-100: #c2daff;
-  --color-brand-200: #8bb8ff;
-  --color-brand-300: #549aff;
-  --color-brand-400: #2b87ff;
-  --color-brand-500: #007aff;
-  --color-brand-600: #0056b3;
-  --color-brand-700: #004085;
-  --color-brand-800: #002d5c;
-  --color-brand-900: #001a33;
+  /* Brand Colors (Apple Blue) */
+  --color-brand-50: #e8f2ff;
+  --color-brand-100: #c5dfff;
+  --color-brand-200: #8ec5ff;
+  --color-brand-300: #4da6ff;
+  --color-brand-400: #2997ff;
+  --color-brand-500: #0071e3;
+  --color-brand-600: #0066cc;
+  --color-brand-700: #0055aa;
+  --color-brand-800: #003d7a;
+  --color-brand-900: #002a54;
 
-  /* Background Surfaces (OpenCode Dark) */
-  --color-bg-page: #201d1d;
-  --color-bg-surface: #302c2c;
-  --color-bg-elevated: #3a3535;
-  --color-bg-hover: #3a3535;
-  --color-bg-subtle: rgba(253, 252, 252, 0.04);
-  --color-bg-standard: rgba(253, 252, 252, 0.06);
+  /* Background Surfaces (Apple Light) */
+  --color-bg-page: #f5f5f7;
+  --color-bg-surface: #ffffff;
+  --color-bg-elevated: #ffffff;
+  --color-bg-hover: #ededf2;
+  --color-bg-subtle: rgba(0, 113, 227, 0.04);
+  --color-bg-standard: rgba(0, 113, 227, 0.06);
 
   /* Text Colors */
-  --color-text-primary: #fdfcfc;
-  --color-text-secondary: #9a9898;
-  --color-text-tertiary: #6e6e73;
-  --color-text-quaternary: #646262;
-  --color-text-inverse: #201d1d;
+  --color-text-primary: #1d1d1f;
+  --color-text-secondary: rgba(0, 0, 0, 0.8);
+  --color-text-tertiary: rgba(0, 0, 0, 0.48);
+  --color-text-quaternary: rgba(0, 0, 0, 0.32);
+  --color-text-inverse: #ffffff;
 
   /* Border Colors */
-  --border-subtle: rgba(15, 0, 0, 0.12);
-  --border-standard: rgba(15, 0, 0, 0.12);
-  --border-strong: #646262;
-  --border-brand: #007aff;
-  --border-brand-subtle: rgba(0, 122, 255, 0.3);
+  --border-subtle: rgba(0, 0, 0, 0.04);
+  --border-standard: rgba(0, 0, 0, 0.08);
+  --border-strong: #1d1d1f;
+  --border-brand: #0071e3;
+  --border-brand-subtle: rgba(0, 113, 227, 0.3);
 
-  /* Success Colors (Apple HIG Green) */
+  /* Success Colors */
   --color-success-50: #e8f9ed;
   --color-success-100: #c5f0d0;
   --color-success-200: #8ae4a8;
@@ -56,7 +56,7 @@
   --color-success-800: #16752d;
   --color-success-900: #0d5620;
 
-  /* Warning Colors (Apple HIG Orange) */
+  /* Warning Colors */
   --color-warning-50: #fff6eb;
   --color-warning-100: #ffe8c7;
   --color-warning-200: #ffd08a;
@@ -68,7 +68,7 @@
   --color-warning-800: #664004;
   --color-warning-900: #332002;
 
-  /* Error/Danger Colors (Apple HIG Red) */
+  /* Error/Danger Colors */
   --color-error-50: #fff0ee;
   --color-error-100: #ffd9d6;
   --color-error-200: #ffb3ad;
@@ -89,7 +89,7 @@
      PRODUCT LEVEL COLORS (Hot/Warm/Idle)
      ============================================ */
 
-  /* Hot Level - High activity (10+ orders) - Apple Red */
+  /* Hot Level - Apple Red */
   --level-hot-bg: rgba(255, 59, 48, 0.10);
   --level-hot-bg-strong: rgba(255, 59, 48, 0.18);
   --level-hot-border: rgba(255, 59, 48, 0.30);
@@ -97,7 +97,7 @@
   --level-hot-text-bright: #ff6b60;
   --level-hot-glow: rgba(255, 59, 48, 0.35);
 
-  /* Warm Level - Medium activity (3-9 orders) - Apple Green */
+  /* Warm Level - Apple Green */
   --level-warm-bg: rgba(48, 209, 88, 0.10);
   --level-warm-bg-strong: rgba(48, 209, 88, 0.18);
   --level-warm-border: rgba(48, 209, 88, 0.30);
@@ -105,16 +105,16 @@
   --level-warm-text-bright: #5ae07a;
   --level-warm-glow: rgba(48, 209, 88, 0.35);
 
-  /* Idle Level - Low activity (0-2 orders) - Mid Gray */
-  --level-idle-bg: rgba(154, 152, 152, 0.08);
-  --level-idle-bg-strong: rgba(154, 152, 152, 0.14);
-  --level-idle-border: rgba(154, 152, 152, 0.20);
-  --level-idle-text: #9a9898;
-  --level-idle-text-bright: #b8b6b6;
-  --level-idle-glow: rgba(154, 152, 152, 0.20);
+  /* Idle Level - Neutral Gray */
+  --level-idle-bg: rgba(0, 0, 0, 0.04);
+  --level-idle-bg-strong: rgba(0, 0, 0, 0.08);
+  --level-idle-border: rgba(0, 0, 0, 0.12);
+  --level-idle-text: rgba(0, 0, 0, 0.48);
+  --level-idle-text-bright: rgba(0, 0, 0, 0.8);
+  --level-idle-glow: rgba(0, 0, 0, 0.08);
 
   /* ============================================
-     SPACING SCALE (8px base)
+     SPACING SCALE (Apple: dense micro, then jumps)
      ============================================ */
 
   --space-1: 4px;
@@ -133,27 +133,27 @@
   --space-16: 64px;
 
   /* ============================================
-     TYPOGRAPHY (Berkeley Mono - sole typeface)
+     TYPOGRAPHY (SF Pro Display/Text)
      ============================================ */
 
   /* Font Families */
-  --font-sans: 'Berkeley Mono', 'IBM Plex Mono', ui-monospace, 'SFMono-Regular', Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
-  --font-mono: 'Berkeley Mono', 'IBM Plex Mono', ui-monospace, 'SFMono-Regular', Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
-  --font-features: "tnum";
-  --font-features-num: "tnum";
+  --font-sans: 'SF Pro Display', 'SF Pro Text', '-apple-system', 'BlinkMacSystemFont', 'Helvetica Neue', 'Helvetica', 'Arial', sans-serif;
+  --font-mono: 'SF Mono', 'SFMono-Regular', 'Menlo', 'Consolas', 'Liberation Mono', 'Courier New', monospace;
+  --font-features: "ss01";
+  --font-features-num: "ss01", "tnum";
 
   /* Font Sizes */
   --text-xs: 11px;
   --text-sm: 12px;
   --text-base: 14px;
-  --text-lg: 16px;
-  --text-xl: 18px;
-  --text-2xl: 20px;
-  --text-3xl: 24px;
-  --text-4xl: 30px;
+  --text-lg: 17px;
+  --text-xl: 21px;
+  --text-2xl: 28px;
+  --text-3xl: 40px;
+  --text-4xl: 56px;
 
-  /* Font Weights - OpenCode: 700 heading, 500 interactive, 400 body */
-  --font-light: 400;
+  /* Font Weights */
+  --font-light: 300;
   --font-normal: 400;
   --font-medium: 500;
   --font-semibold: 600;
@@ -161,61 +161,61 @@
 
   /* Line Heights */
   --leading-none: 1;
-  --leading-tight: 1;
-  --leading-snug: 1.2;
-  --leading-normal: 1.5;
-  --leading-relaxed: 2;
+  --leading-tight: 1.07;
+  --leading-snug: 1.14;
+  --leading-normal: 1.47;
+  --leading-relaxed: 1.6;
 
   /* Letter Spacing */
-  --tracking-tighter: -0.02em;
-  --tracking-tight: -0.01em;
+  --tracking-tighter: -0.374px;
+  --tracking-tight: -0.224px;
   --tracking-normal: 0;
-  --tracking-wide: 0.02em;
+  --tracking-wide: 0.025em;
 
   /* ============================================
-     BORDER RADIUS (OpenCode: 4px everywhere, 6px inputs)
+     BORDER RADIUS (Apple: 5-12px + 980px pill)
      ============================================ */
 
   --radius-none: 0;
-  --radius-sm: 4px;
-  --radius-md: 4px;
-  --radius-lg: 4px;
-  --radius-xl: 6px;
+  --radius-sm: 5px;
+  --radius-md: 8px;
+  --radius-lg: 11px;
+  --radius-xl: 12px;
 
   /* ============================================
-     SHADOWS (OpenCode: intentionally flat, no shadows)
+     SHADOWS (Apple: minimal, one soft shadow)
      ============================================ */
 
   --shadow-ambient: none;
-  --shadow-sm: none;
-  --shadow-md: none;
-  --shadow-lg: none;
-  --shadow-xl: none;
+  --shadow-sm: rgba(0, 0, 0, 0.06) 0px 2px 8px 0px;
+  --shadow-md: rgba(0, 0, 0, 0.22) 3px 5px 30px 0px;
+  --shadow-lg: rgba(0, 0, 0, 0.22) 5px 10px 40px 0px;
+  --shadow-xl: rgba(0, 0, 0, 0.22) 8px 15px 50px 0px;
 
-  /* Glow Shadows (accent blue based) */
-  --glow-primary: 0 0 0 1px rgba(0, 122, 255, 0.3);
-  --glow-success: 0 0 0 1px rgba(48, 209, 88, 0.3);
-  --glow-error: 0 0 0 1px rgba(255, 59, 48, 0.3);
-  --glow-hot: 0 0 0 1px rgba(255, 59, 48, 0.4);
-  --glow-warm: 0 0 0 1px rgba(48, 209, 88, 0.4);
+  /* Glow Shadows */
+  --glow-primary: 0 0 0 2px rgba(0, 113, 227, 0.3);
+  --glow-success: 0 0 0 2px rgba(48, 209, 88, 0.3);
+  --glow-error: 0 0 0 2px rgba(255, 59, 48, 0.3);
+  --glow-hot: 0 0 0 2px rgba(255, 59, 48, 0.4);
+  --glow-warm: 0 0 0 2px rgba(48, 209, 88, 0.4);
 
   /* ============================================
-     BACKDROP FILTERS (OpenCode: solid, no blur)
+     BACKDROP FILTERS
      ============================================ */
 
   --backdrop-blur-none: 0;
-  --backdrop-blur-sm: 0;
-  --backdrop-blur: 0;
-  --backdrop-blur-md: 0;
-  --backdrop-blur-lg: 0;
+  --backdrop-blur-sm: 8px;
+  --backdrop-blur: 12px;
+  --backdrop-blur-md: 16px;
+  --backdrop-blur-lg: 20px;
 
   /* ============================================
-     TRANSITIONS (OpenCode: minimal, 100-150ms)
+     TRANSITIONS
      ============================================ */
 
-  --transition-fast: 100ms;
-  --transition-base: 150ms;
-  --transition-slow: 200ms;
+  --transition-fast: 150ms;
+  --transition-base: 200ms;
+  --transition-slow: 300ms;
 
   --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
   --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
