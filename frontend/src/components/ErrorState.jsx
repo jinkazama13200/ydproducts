@@ -52,7 +52,7 @@ function ErrorState({
     inline: {
       container: {
         padding: '16px',
-        borderRadius: '4px',
+        borderRadius: '8px',
         background: 'rgba(255,59,48,0.08)',
         border: '1px solid rgba(255,59,48,0.3)',
         display: 'flex',
@@ -60,30 +60,30 @@ function ErrorState({
         gap: '12px',
         flexWrap: 'wrap'
       },
-      message: { flex: '1 1 300px', color: '#ff6b60', fontSize: '13px', fontWeight: '500' },
+      message: { flex: '1 1 300px', color: '#ff3b30', fontSize: '13px', fontWeight: '500' },
       button: { padding: '4px 20px', minHeight: 'auto', background: '#ff3b30' }
     },
     card: {
       container: {
         padding: '24px',
-        borderRadius: '4px',
-        background: '#302c2c',
+        borderRadius: '8px',
+        background: '#ffffff',
         border: '1px solid rgba(255,59,48,0.3)'
       },
-      message: { color: '#fdfcfc', fontSize: '14px', fontWeight: '500', marginBottom: '8px' },
+      message: { color: '#1d1d1f', fontSize: '14px', fontWeight: '500', marginBottom: '8px' },
       button: { padding: '4px 20px', background: '#ff3b30' }
     },
     fullscreen: {
       container: {
         padding: '32px',
-        borderRadius: '4px',
-        background: '#302c2c',
+        borderRadius: '8px',
+        background: '#ffffff',
         border: '1px solid rgba(255,59,48,0.4)',
         maxWidth: '520px',
         margin: '80px auto',
         textAlign: 'center'
       },
-      message: { color: '#fdfcfc', fontSize: '16px', marginBottom: '16px' },
+      message: { color: '#1d1d1f', fontSize: '16px', marginBottom: '16px' },
       button: { padding: '4px 20px', background: '#ff3b30' }
     }
   };
@@ -110,7 +110,7 @@ function ErrorState({
         </p>
 
         {lastSuccessfulFetch && (
-          <small style={{ color: '#9a9898', fontSize: '11px', display: 'block', marginTop: '4px' }}>
+          <small style={{ color: 'rgba(0,0,0,.48)', fontSize: '11px', display: 'block', marginTop: '4px' }}>
             Last successful fetch: {formatTimeAgo(lastSuccessfulFetch)}
           </small>
         )}
@@ -144,7 +144,7 @@ function EmptyState({
       style={{
         padding: '32px',
         textAlign: 'center',
-        color: '#9a9898'
+        color: 'rgba(0,0,0,.48)'
       }}
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
@@ -157,9 +157,9 @@ function EmptyState({
 
       <h3 style={{
         margin: '0 0 8px 0',
-        color: '#fdfcfc',
+        color: '#1d1d1f',
         fontSize: '16px',
-        fontWeight: '700'
+        fontWeight: '600'
       }}>
         {title}
       </h3>
@@ -167,7 +167,7 @@ function EmptyState({
       {message && (
         <p style={{
           margin: '0 0 16px 0',
-          color: '#9a9898',
+          color: 'rgba(0,0,0,.48)',
           fontSize: '13px',
           maxWidth: '400px',
           marginLeft: 'auto',
@@ -181,11 +181,11 @@ function EmptyState({
         <motion.button
           onClick={action.onClick}
           style={{
-            background: action.background || '#007aff',
+            background: action.background || '#0071e3',
             padding: '4px 20px',
-            borderRadius: '4px',
+            borderRadius: '8px',
             border: 'none',
-            color: '#fdfcfc',
+            color: '#ffffff',
             fontWeight: '500',
             cursor: 'pointer'
           }}
@@ -222,8 +222,8 @@ function LoadingState({
         style={{
           width: '100%',
           height: '4px',
-          background: 'rgba(253,252,252,0.05)',
-          borderRadius: '9999px',
+          background: 'rgba(0,0,0,0.04)',
+          borderRadius: '980px',
           overflow: 'hidden'
         }}
         role="progressbar"
@@ -233,8 +233,8 @@ function LoadingState({
           style={{
             width: '50%',
             height: '100%',
-            background: '#007aff',
-            borderRadius: '9999px'
+            background: '#0071e3',
+            borderRadius: '980px'
           }}
           animate={{ x: ['-100%', '200%'] }}
           transition={{
@@ -257,7 +257,7 @@ function LoadingState({
           alignItems: 'center',
           gap: '12px',
           padding: '24px',
-          color: '#9a9898'
+          color: 'rgba(0,0,0,.48)'
         }}
         role="status"
       >
@@ -265,8 +265,8 @@ function LoadingState({
           style={{
             width: '32px',
             height: '32px',
-            border: '3px solid rgba(15,0,0,0.12)',
-            borderTopColor: '#007aff',
+            border: '3px solid rgba(0,0,0,0.04)',
+            borderTopColor: '#0071e3',
             borderRadius: '50%'
           }}
           animate={{ rotate: 360 }}
@@ -289,7 +289,7 @@ function LoadingState({
         alignItems: 'center',
         gap: '8px',
         padding: '12px',
-        color: '#9a9898'
+        color: 'rgba(0,0,0,.48)'
       }}
       role="status"
     >
@@ -300,7 +300,7 @@ function LoadingState({
             width: '8px',
             height: '8px',
             borderRadius: '50%',
-            background: '#007aff'
+            background: '#0071e3'
           }}
           variants={dotVariants}
           animate="animate"

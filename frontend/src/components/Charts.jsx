@@ -21,13 +21,13 @@ export function MerchantSparkline({ data, width = 80, height = 28 }) {
   if (safeData.length === 0) {
     return (
       <div style={{ width, height, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <span style={{ color: '#6e6e73', fontSize: 9 }}>--</span>
+        <span style={{ color: 'rgba(0,0,0,.48)', fontSize: 9 }}>--</span>
       </div>
     );
   }
 
   const total = safeData.reduce((s, d) => s + Number(d?.ordersInWindow || 0), 0);
-  const color = total >= 10 ? '#ff3b30' : total >= 3 ? '#30d158' : '#9a9898';
+  const color = total >= 10 ? '#ff3b30' : total >= 3 ? '#30d158' : 'rgba(0,0,0,.48)';
 
   return (
     <ResponsiveContainer width={width} height={height}>
@@ -48,7 +48,7 @@ export function MerchantSparkline({ data, width = 80, height = 28 }) {
  * 7-day trend chart for KPI cards
  * Shows real data if provided, "No data" placeholder if empty
  */
-export function WeekTrendChart({ data, width = 60, height = 32, color = '#007aff' }) {
+export function WeekTrendChart({ data, width = 60, height = 32, color = '#0071e3' }) {
   const chartData = useMemo(() => {
     const safeData = Array.isArray(data) ? data : [];
     if (safeData.length === 0) return null;
@@ -62,7 +62,7 @@ export function WeekTrendChart({ data, width = 60, height = 32, color = '#007aff
   if (!chartData || chartData.length === 0) {
     return (
       <div style={{ width, height, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <span style={{ color: '#6e6e73', fontSize: 9 }}>--</span>
+        <span style={{ color: 'rgba(0,0,0,.48)', fontSize: 9 }}>--</span>
       </div>
     );
   }
@@ -97,7 +97,7 @@ export function ActivityBarChart({ data, width = 120, height = 40 }) {
     return [
       { label: 'Hot', value: hot, color: '#ff3b30' },
       { label: 'Warm', value: warm, color: '#30d158' },
-      { label: 'Idle', value: idle, color: '#9a9898' }
+      { label: 'Idle', value: idle, color: 'rgba(0,0,0,.48)' }
     ];
   }, [data]);
 
@@ -121,7 +121,7 @@ export function ActivityBarChart({ data, width = 120, height = 40 }) {
           <span style={{ fontSize: 8, color: item.color, marginTop: 2, fontWeight: 700 }}>
             {item.label}
           </span>
-          <span style={{ fontSize: 9, color: '#9a9898' }}>
+          <span style={{ fontSize: 9, color: 'rgba(0,0,0,.48)' }}>
             {item.value}
           </span>
         </div>

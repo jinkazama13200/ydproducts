@@ -22,9 +22,9 @@ function Skeleton({
   const baseStyles = {
     width,
     height,
-    background: 'linear-gradient(90deg, #302c2c 25%, #3a3535 50%, #302c2c 75%)',
+    background: 'linear-gradient(90deg, #f5f5f7 25%, #e5e5ea 50%, #f5f5f7 75%)',
     backgroundSize: '200% 100%',
-    borderRadius: '4px'
+    borderRadius: '8px'
   };
 
   const variantStyles = {
@@ -32,9 +32,9 @@ function Skeleton({
     circular: { borderRadius: '50%' },
     text: { height: '1em', maxWidth: '80%' },
     card: {
-      borderRadius: '4px',
-      background: 'linear-gradient(180deg, #302c2c, #302c2c)',
-      border: '1px solid rgba(15,0,0,0.12)'
+      borderRadius: '8px',
+      background: 'linear-gradient(180deg, #f5f5f7, #f5f5f7)',
+      border: 'none'
     }
   };
 
@@ -58,9 +58,9 @@ function SkeletonKPI({ count = 1 }) {
           key={i}
           className="kpi-card"
           style={{
-            background: '#302c2c',
-            border: '1px solid rgba(15,0,0,0.12)',
-            borderRadius: '4px',
+            background: '#ffffff',
+            border: 'none',
+            borderRadius: '8px',
             padding: '14px',
             minHeight: '96px',
             display: 'flex',
@@ -89,7 +89,7 @@ function SkeletonTableRow({ count = 5, columns = 4 }) {
             alignItems: 'center',
             gap: '10px',
             padding: '10px 8px',
-            borderBottom: '1px solid rgba(15,0,0,0.12)'
+            borderBottom: '1px solid rgba(0,0,0,0.04)'
           }}
         >
           {Array.from({ length: columns }).map((_, j) => (
@@ -97,8 +97,8 @@ function SkeletonTableRow({ count = 5, columns = 4 }) {
               key={j}
               style={{
                 height: '20px',
-                background: '#3a3535',
-                borderRadius: '4px',
+                background: '#e5e5ea',
+                borderRadius: '8px',
                 flex: j === 1 ? '1.5' : '1'
               }}
             />
@@ -117,9 +117,9 @@ function SkeletonCardGrid({ count = 4 }) {
           key={i}
           className="skeleton-card"
           style={{
-            background: '#302c2c',
-            border: '1px solid rgba(15,0,0,0.12)',
-            borderRadius: '4px',
+            background: '#ffffff',
+            border: 'none',
+            borderRadius: '8px',
             padding: '14px',
             minHeight: '200px'
           }}
